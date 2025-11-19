@@ -27,22 +27,37 @@ void connectWiFi() {
     return;
   }
   
+  // Disconnect any existing connection and set mode
+  WiFi.disconnect(true);
+  delay(1000);
+  WiFi.mode(WIFI_STA);
+  delay(500);
+  
   // Connect to WiFi
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   
-  // Wait for connection (timeout after 20 seconds)
+  // Wait for connection (timeout after 30 seconds with status updates)
   int attempts = 0;
-  while (WiFi.status() != WL_CONNECTED && attempts < 20) {
+  while (WiFi.status() != WL_CONNECTED && attempts < 30) {
     delay(1000);
     attempts++;
+    
+    // Print status every 5 seconds
+    if (attempts % 5 == 0) {
+      Serial.print("WiFi status: ");
+      Serial.println(WiFi.status());
+    }
   }
   
   if (WiFi.status() == WL_CONNECTED) {
     wifiConnected = true;
     Serial.println("WiFi connected");
+    Serial.print("IP address: ");
+    Serial.println(WiFi.localIP());
   } else {
     wifiConnected = false;
-    Serial.println("WiFi connection failed");
+    Serial.print("WiFi connection failed. Final status: ");
+    Serial.println(WiFi.status());
   }
 }
 
@@ -80,15 +95,18 @@ WiFiClient* getROSClient() {
 void checkConnections() {
   // Check WiFi first
   if (WiFi.status() != WL_CONNECTED && wifiConnected) {
+    Serial.println("WiFi disconnected, attempting reconnect...");
     wifiConnected = false;
     rosClient.stop();
+    delay(2000);  // Wait before reconnecting
     connectWiFi();
   }
   
   // If WiFi is good but ROS disconnected, try to reconnect
   if (wifiConnected && !rosClient.connected()) {
+    Serial.println("ROS disconnected, attempting reconnect...");
     rosClient.stop();
-    delay(1000);
+    delay(2000); // Wait before reconnecting
     connectToROSServer();
   }
 }
