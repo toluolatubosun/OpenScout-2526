@@ -7,7 +7,7 @@ const char* WIFI_SSID = "John_A16";      // Change this
 const char* WIFI_PASSWORD = "kingtolu";     // Change this
 
 // === ROS TCP SERVER CONFIGURATION ===
-const char* ROS_SERVER_IP = "192.168.1.10";     // PC running rosserial
+const char* ROS_SERVER_IP = "10.196.173.96";     // PC running rosserial
 const int ROS_SERVER_PORT = 11411;               // rosserial default port
 
 // === WIFI STATE ===
@@ -18,6 +18,8 @@ WiFiClient rosClient;
 
 // === CONNECT TO WIFI ===
 void connectWiFi() {
+  Serial.println("Attempting to connect to WiFi!");
+
   // Check if WiFi module exists
   if (WiFi.status() == WL_NO_MODULE) {
     Serial.println("ERROR: WiFi module not found!");
@@ -28,10 +30,10 @@ void connectWiFi() {
   // Connect to WiFi
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   
-  // Wait for connection (timeout after 10 seconds)
+  // Wait for connection (timeout after 20 seconds)
   int attempts = 0;
   while (WiFi.status() != WL_CONNECTED && attempts < 20) {
-    delay(500);
+    delay(1000);
     attempts++;
   }
   
