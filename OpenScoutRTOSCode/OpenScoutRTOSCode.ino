@@ -32,9 +32,7 @@ bool isEStopButtonPressed();
 // WiFi Declarations
 void initializeWiFi();
 bool isWiFiConnected();
-bool isROSConnected();
 void checkConnections();
-WiFiClient* getROSClient();
 
 // Helper Functions
 void updateSpeed(int speedLevel);
@@ -112,33 +110,12 @@ void TaskSerialRead() {
     char input = 0;
     bool commandReceived = false;
     
-    // First check for WiFi commands
-    if (isROSConnected()) {
-      WiFiClient* client = getROSClient();
-      
-      if (client->available()) {
-        String command = client->readStringUntil('\n');
-        command.trim();
-        
-        // Ignore empty commands (keep-alive packets)
-        if (command.length() > 0 && command != "") {
-          input = command.charAt(0);
-          commandReceived = true;
-          Serial.print("WiFi command: ");
-          Serial.println(input);
-        }
-      }
-    }
-    
-    // If no WiFi command, check serial
+    // Check serial for commands
     if (!commandReceived && Serial.available() > 0) {
       input = Serial.read();
-      // Ignore whitespace characters
-      if (input != ' ' && input != '\n' && input != '\r' && input != '\t') {
-        commandReceived = true;
-        Serial.print("Serial command: ");
-        Serial.println(input);
-      }
+      commandReceived = true;
+      Serial.print("Serial command: ");
+      Serial.println(input);
     }
     
     // Process the command if we received one
