@@ -1,172 +1,189 @@
-// --- Dual Motor Control with Step Movement ---
-// Motor A (Left Motor)
-const int enA = 3;   // PWM pin
-const int in1 = 4;   // Direction pin 1
-const int in2 = 5;   // Direction pin 2
+#include <Arduino_FreeRTOS.h>
 
-// Motor B (Right Motor)
-const int enB = 9;   // PWM pin
-const int in3 = 7;   // Direction pin 1
-const int in4 = 8;   // Direction pin 2
+// === SHARED STATE (Global) ===
+volatile char currentCommand = 'X';
+volatile int currentSpeed = 150;
+volatile int stepDuration = 300;
+volatile unsigned long commandTime = 0;
 
-// Motor control variables
-int currentSpeed = 150;  // Default speed
-int stepDuration = 300;  // Movement duration in milliseconds
+// === FORWARD DECLARATIONS  ===
+// Motor Controls Declarations
+void initializeMotorPins();
+void motorAForward();
+void motorABackward();
+void motorBForward();
+void motorBBackward();
+void stopAllMotors();
 
-void setup() {
-  // Initialize Motor A pins
-  pinMode(enA, OUTPUT);
-  pinMode(in1, OUTPUT);
-  pinMode(in2, OUTPUT);
-  
-  // Initialize Motor B pins
-  pinMode(enB, OUTPUT);
-  pinMode(in3, OUTPUT);
-  pinMode(in4, OUTPUT);
-  
-  // Start with motors stopped
-  stopAllMotors();
-  
+// E-stop Declarations
+void initializeEStop();
+bool isEStopActive();
+void resetEStop();
+bool isEStopButtonPressed();
+
+// === TASK DECLARATIONS ===
+void TaskSerialRead(void *pvParameters);
+void TaskMotorControl(void *pvParameters);
+
+void setup() { 
   Serial.begin(9600);
-  Serial.println("=== Dual Motor Step Control ===");
-  Serial.println("W = Forward step");
-  Serial.println("S = Backward step");
-  Serial.println("A = Turn left step");
-  Serial.println("D = Turn right step");
-  Serial.println("X = Stop both motors");
-  Serial.println("0-9 = Set speed (0=slow, 9=fast)");
-  Serial.println("+ = Increase step duration");
-  Serial.println("- = Decrease step duration");
-  Serial.println("================================");
+  while (!Serial) { ; }
+
+  initializeMotorPins();
+  initializeEStop();
+ 
+  printMenu();
+  
+  xTaskCreate(TaskSerialRead, "Serial", 128, NULL, 1, NULL);
+  xTaskCreate(TaskMotorControl, "Motor", 128, NULL, 1, NULL);
 }
 
 void loop() {
-  if (Serial.available() > 0) {
-    char input = Serial.read();
-    
-    // Forward - both motors forward
-    if (input == 'W' || input == 'w') {
-      Serial.println("Step: Forward");
-      stepForward();
+  // Empty
+}
+
+// === SERIAL READING TASK ===
+void TaskSerialRead(void *pvParameters) {
+  (void) pvParameters;
+  
+  while (1) {
+    if (Serial.available() > 0) {
+      char input = Serial.read();
+
+      // Check if e-stop is active
+      if (isEStopActive() && input != 'R' && input != 'r') {
+        Serial.println("E-STOP ACTIVE! Press 'R' to reset.");
+        vTaskDelay(10 / portTICK_PERIOD_MS);
+        continue;
+      }
+      
+      switch (input) {
+        case 'W': case 'w':
+          currentCommand = 'W';
+          commandTime = millis();
+          Serial.println("Forward");
+          break;
+          
+        case 'S': case 's':
+          currentCommand = 'S';
+          commandTime = millis();
+          Serial.println("Backward");
+          break;
+          
+        case 'A': case 'a':
+          currentCommand = 'A';
+          commandTime = millis();
+          Serial.println("Turn Left");
+          break;
+          
+        case 'D': case 'd':
+          currentCommand = 'D';
+          commandTime = millis();
+          Serial.println("Turn Right");
+          break;
+          
+        case 'X': case 'x':
+          currentCommand = 'X';
+          Serial.println("Stop");
+          break;
+
+        case 'R': case 'r':
+          resetEStop();
+          break;
+          
+        case '0': case '1': case '2': case '3': case '4':
+        case '5': case '6': case '7': case '8': case '9':
+          updateSpeed(input - '0');
+          break;
+          
+        case '-':
+          updateDuration(-100);
+          break;
+          
+        case '+':
+          updateDuration(100);
+          break;
+      }
     }
-    // Backward - both motors backward
-    else if (input == 'S' || input == 's') {
-      Serial.println("Step: Backward");
-      stepBackward();
-    }
-    // Turn left - left motor backward, right motor forward
-    else if (input == 'A' || input == 'a') {
-      Serial.println("Step: Turn Left");
-      stepTurnLeft();
-    }
-    // Turn right - left motor forward, right motor backward
-    else if (input == 'D' || input == 'd') {
-      Serial.println("Step: Turn Right");
-      stepTurnRight();
-    }
-    // Stop
-    else if (input == 'X' || input == 'x') {
-      stopAllMotors();
-      Serial.println("Motors stopped");
-    }
-    // Speed control (0-9)
-    else if (input >= '0' && input <= '9') {
-      int speedLevel = input - '0';
-      currentSpeed = map(speedLevel, 0, 9, 50, 255);  // Map to 50-255 for better range
-      Serial.print("Speed set to level ");
-      Serial.print(speedLevel);
-      Serial.print(" (PWM: ");
-      Serial.print(currentSpeed);
-      Serial.println(")");
-    }
-    // Increase step duration
-    else if (input == '+') {
-      stepDuration += 50;
-      if (stepDuration > 2000) stepDuration = 2000;
-      Serial.print("Step duration: ");
-      Serial.print(stepDuration);
-      Serial.println("ms");
-    }
-    // Decrease step duration
-    else if (input == '-') {
-      stepDuration -= 50;
-      if (stepDuration < 100) stepDuration = 100;
-      Serial.print("Step duration: ");
-      Serial.print(stepDuration);
-      Serial.println("ms");
-    }
+    vTaskDelay(10 / portTICK_PERIOD_MS);
   }
 }
 
-// === STEP MOVEMENT FUNCTIONS ===
-void stepForward() {
-  motorAForward();
-  motorBForward();
-  delay(stepDuration);
-  stopAllMotors();
+// === MOTOR CONTROL TASK ===
+void TaskMotorControl(void *pvParameters) {
+  (void) pvParameters;
+  
+  while (1) {
+    // E-stop check - highest priority
+    if (isEStopActive()) {
+      stopAllMotors();
+      vTaskDelay(50 / portTICK_PERIOD_MS);  // Check less frequently when stopped
+      continue;
+    }
+
+    unsigned long now = millis();
+    char cmd = currentCommand;
+    
+    if (cmd != 'X' && (now - commandTime) >= stepDuration) {
+      currentCommand = 'X';
+      cmd = 'X';
+    }
+    
+    switch (cmd) {
+      case 'W':
+        motorAForward();
+        motorBForward();
+        break;
+      case 'S':
+        motorABackward();
+        motorBBackward();
+        break;
+      case 'A':
+        motorABackward();
+        motorBForward();
+        break;
+      case 'D':
+        motorAForward();
+        motorBBackward();
+        break;
+      case 'X':
+        stopAllMotors();
+        break;
+    }
+    
+    vTaskDelay(10 / portTICK_PERIOD_MS);
+  }
 }
 
-void stepBackward() {
-  motorABackward();
-  motorBBackward();
-  delay(stepDuration);
-  stopAllMotors();
+// === HELPER FUNCTIONS ===
+void updateSpeed(int speedLevel) {
+  currentSpeed = map(speedLevel, 0, 9, 50, 255);
+  Serial.print("Speed: ");
+  Serial.print(speedLevel);
+  Serial.print(" (PWM ");
+  Serial.print(currentSpeed);
+  Serial.println(")");
 }
 
-void stepTurnLeft() {
-  motorABackward();
-  motorBForward();
-  delay(stepDuration);
-  stopAllMotors();
+void updateDuration(int change) {
+  stepDuration += change;
+  if (stepDuration < 100) stepDuration = 100;
+  if (stepDuration > 900) stepDuration = 900;
+  stepDuration = (stepDuration / 100) * 100;
+  
+  Serial.print("Duration: ");
+  Serial.print(stepDuration);
+  Serial.println("ms");
 }
 
-void stepTurnRight() {
-  motorAForward();
-  motorBBackward();
-  delay(stepDuration);
-  stopAllMotors();
-}
-
-// === MOTOR A (LEFT) CONTROL ===
-void motorAForward() {
-  digitalWrite(in1, HIGH);
-  digitalWrite(in2, LOW);
-  analogWrite(enA, currentSpeed);
-}
-
-void motorABackward() {
-  digitalWrite(in1, LOW);
-  digitalWrite(in2, HIGH);
-  analogWrite(enA, currentSpeed);
-}
-
-void stopMotorA() {
-  digitalWrite(in1, LOW);
-  digitalWrite(in2, LOW);
-  analogWrite(enA, 0);
-}
-
-// === MOTOR B (RIGHT) CONTROL ===
-void motorBForward() {
-  digitalWrite(in4, HIGH);
-  digitalWrite(in3, LOW);
-  analogWrite(enB, currentSpeed);
-}
-
-void motorBBackward() {
-  digitalWrite(in4, LOW);
-  digitalWrite(in3, HIGH);
-  analogWrite(enB, currentSpeed);
-}
-
-void stopMotorB() {
-  digitalWrite(in4, LOW);
-  digitalWrite(in3, LOW);
-  analogWrite(enB, 0);
-}
-
-// === STOP ALL ===
-void stopAllMotors() {
-  stopMotorA();
-  stopMotorB();
+void printMenu() {
+  Serial.println("=== Real-Time Motor Control ===");
+  Serial.println("W/S = Forward/Backward");
+  Serial.println("A/D = Turn Left/Right");
+  Serial.println("X = Stop");
+  Serial.println("0-9 = Speed");
+  Serial.println("+/- = Duration 100-900ms");
+  Serial.println("================================");
+  Serial.println("E-Stop: Press button for emergency stop");
+  Serial.println("================================");
 }
