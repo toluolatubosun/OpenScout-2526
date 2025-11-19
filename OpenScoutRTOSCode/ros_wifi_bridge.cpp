@@ -98,7 +98,7 @@ void checkConnections() {
     Serial.println("WiFi disconnected, attempting reconnect...");
     wifiConnected = false;
     rosClient.stop();
-    delay(2000);  // Wait before reconnecting
+    delay(1000);
     connectWiFi();
   }
   
@@ -106,7 +106,7 @@ void checkConnections() {
   if (wifiConnected && !rosClient.connected()) {
     Serial.println("ROS disconnected, attempting reconnect...");
     rosClient.stop();
-    delay(2000); // Wait before reconnecting
+    delay(1000);
     connectToROSServer();
   }
 }

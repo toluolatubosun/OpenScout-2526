@@ -70,21 +70,13 @@ class ArduinoBridge(Node):
                     status_msg.data = f"Arduino connected from {addr}"
                     self.status_publisher.publish(status_msg)
                     
-                    # Keep connection alive and handle incoming data
+                    # Simple connection monitoring - just check if socket is alive
                     while self.server_running:
                         try:
-                            # Check for any incoming data from Arduino
-                            if self.conn:
-                                self.conn.settimeout(1.0)
-                                try:
-                                    data = self.conn.recv(1024)
-                                    if data:
-                                        self.get_logger().info(f'Arduino says: {data.decode().strip()}')
-                                except socket.timeout:
-                                    pass
-                                except:
-                                    break
-                            time.sleep(0.1)
+                            # Test connection by trying to send empty data (but don't actually send)
+                            if self.conn.fileno() == -1:  # Socket closed
+                                break
+                            time.sleep(2)  # Check every 2 seconds
                         except:
                             self.get_logger().warn('Arduino disconnected')
                             self.conn = None

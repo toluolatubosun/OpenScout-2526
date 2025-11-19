@@ -78,7 +78,7 @@ void rtos_create_tasks() {
     motorThread.start(TaskMotorControl);
     wifiThread.start(TaskWiFiMonitor);
   #else
-    xTaskCreate(TaskSerialRead, "Serial", 128, NULL, 1, &serialTaskHandle);
+    xTaskCreate(TaskSerialRead, "Serial", 256, NULL, 1, &serialTaskHandle);
     xTaskCreate(TaskMotorControl, "Motor", 128, NULL, 1, &motorTaskHandle);
     xTaskCreate(TaskWiFiMonitor, "WiFi", 128, NULL, 1, &wifiTaskHandle);
     vTaskStartScheduler();
@@ -120,7 +120,8 @@ void TaskSerialRead() {
         String command = client->readStringUntil('\n');
         command.trim();
         
-        if (command.length() > 0) {
+        // Ignore empty commands (keep-alive packets)
+        if (command.length() > 0 && command != "") {
           input = command.charAt(0);
           commandReceived = true;
           Serial.print("WiFi command: ");
@@ -132,9 +133,12 @@ void TaskSerialRead() {
     // If no WiFi command, check serial
     if (!commandReceived && Serial.available() > 0) {
       input = Serial.read();
-      commandReceived = true;
-      Serial.print("Serial command: ");
-      Serial.println(input);
+      // Ignore whitespace characters
+      if (input != ' ' && input != '\n' && input != '\r' && input != '\t') {
+        commandReceived = true;
+        Serial.print("Serial command: ");
+        Serial.println(input);
+      }
     }
     
     // Process the command if we received one
