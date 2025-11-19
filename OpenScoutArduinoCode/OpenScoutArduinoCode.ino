@@ -1,6 +1,12 @@
-#include "mbed.h"
-using namespace rtos;
-using namespace std::chrono;
+#if defined(ARDUINO_GIGA)
+  #define USE_MBED_OS
+  #include "mbed.h"
+  using namespace rtos;
+  using namespace std::chrono;
+#else
+  #define USE_FREERTOS
+  #include <Arduino_FreeRTOS.h>
+#endif
 
 // === SHARED STATE (Global) ===
 volatile char currentCommand = 'X';
@@ -23,13 +29,48 @@ bool isEStopActive();
 void resetEStop();
 bool isEStopButtonPressed();
 
-// === TASK DECLARATIONS ===
-void TaskSerialRead();
-void TaskMotorControl();
+// Helper Functions
+void updateSpeed(int speedLevel);
+void updateDuration(int change);
+void printMenu();
 
-// === THREAD OBJECTS ===
-Thread serialThread;
-Thread motorThread;
+// === TASK DECLARATIONS ===
+#ifdef USE_FREERTOS
+  void TaskSerialRead(void* pvParameters);
+  void TaskMotorControl(void* pvParameters);
+#else
+  void TaskSerialRead();
+  void TaskMotorControl();
+#endif
+
+// === RTOS THREAD/TASK HANDLES ===
+#ifdef USE_MBED_OS
+  Thread serialThread;
+  Thread motorThread;
+#else
+  TaskHandle_t serialTaskHandle;
+  TaskHandle_t motorTaskHandle;
+#endif
+
+// === RTOS ABSTRACTION LAYER ===
+inline void rtos_delay_ms(unsigned long ms) {
+  #ifdef USE_MBED_OS
+    ThisThread::sleep_for(std::chrono::milliseconds(ms));
+  #else
+    vTaskDelay(ms / portTICK_PERIOD_MS);
+  #endif
+}
+
+void rtos_create_tasks() {
+  #ifdef USE_MBED_OS
+    serialThread.start(TaskSerialRead);
+    motorThread.start(TaskMotorControl);
+  #else
+    xTaskCreate(TaskSerialRead, "Serial", 128, NULL, 1, &serialTaskHandle);
+    xTaskCreate(TaskMotorControl, "Motor", 128, NULL, 1, &motorTaskHandle);
+    vTaskStartScheduler();
+  #endif
+}
 
 void setup() { 
   Serial.begin(9600);
@@ -39,9 +80,8 @@ void setup() {
   initializeEStop();
 
   printMenu();
-  
-  serialThread.start(TaskSerialRead);
-  motorThread.start(TaskMotorControl);
+
+  rtos_create_tasks();
 }
 
 void loop() {
@@ -49,7 +89,11 @@ void loop() {
 }
 
 // === SERIAL READING TASK ===
+#ifdef USE_FREERTOS
+void TaskSerialRead(void* pvParameters) {
+#else
 void TaskSerialRead() {  
+#endif
   while (1) {
     if (Serial.available() > 0) {
       char input = Serial.read();
@@ -57,7 +101,7 @@ void TaskSerialRead() {
       // Check if e-stop is active
       if (isEStopActive() && input != 'R' && input != 'r') {
         Serial.println("E-STOP ACTIVE! Press 'R' to reset.");
-        ThisThread::sleep_for(milliseconds(10));
+        rtos_delay_ms(10);
         continue;
       }
       
@@ -109,17 +153,21 @@ void TaskSerialRead() {
           break;
       }
     }
-    ThisThread::sleep_for(milliseconds(10));
+    rtos_delay_ms(10);
   }
 }
 
 // === MOTOR CONTROL TASK ===
+#ifdef USE_FREERTOS
+void TaskMotorControl(void* pvParameters) {
+#else
 void TaskMotorControl() {
+#endif
   while (1) {
     // E-stop check - highest priority
     if (isEStopActive()) {
       stopAllMotors();
-      ThisThread::sleep_for(milliseconds(50));
+      rtos_delay_ms(10);
       continue;
     }
 
@@ -153,7 +201,7 @@ void TaskMotorControl() {
         break;
     }
     
-    ThisThread::sleep_for(milliseconds(10));
+    rtos_delay_ms(10);
   }
 }
 
