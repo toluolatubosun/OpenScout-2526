@@ -1,4 +1,6 @@
-#include <Arduino_FreeRTOS.h>
+#include "mbed.h"
+using namespace rtos;
+using namespace std::chrono;
 
 // === SHARED STATE (Global) ===
 volatile char currentCommand = 'X';
@@ -22,8 +24,12 @@ void resetEStop();
 bool isEStopButtonPressed();
 
 // === TASK DECLARATIONS ===
-void TaskSerialRead(void *pvParameters);
-void TaskMotorControl(void *pvParameters);
+void TaskSerialRead();
+void TaskMotorControl();
+
+// === THREAD OBJECTS ===
+Thread serialThread;
+Thread motorThread;
 
 void setup() { 
   Serial.begin(9600);
@@ -31,11 +37,11 @@ void setup() {
 
   initializeMotorPins();
   initializeEStop();
- 
+
   printMenu();
   
-  xTaskCreate(TaskSerialRead, "Serial", 128, NULL, 1, NULL);
-  xTaskCreate(TaskMotorControl, "Motor", 128, NULL, 1, NULL);
+  serialThread.start(TaskSerialRead);
+  motorThread.start(TaskMotorControl);
 }
 
 void loop() {
@@ -43,9 +49,7 @@ void loop() {
 }
 
 // === SERIAL READING TASK ===
-void TaskSerialRead(void *pvParameters) {
-  (void) pvParameters;
-  
+void TaskSerialRead() {  
   while (1) {
     if (Serial.available() > 0) {
       char input = Serial.read();
@@ -53,7 +57,7 @@ void TaskSerialRead(void *pvParameters) {
       // Check if e-stop is active
       if (isEStopActive() && input != 'R' && input != 'r') {
         Serial.println("E-STOP ACTIVE! Press 'R' to reset.");
-        vTaskDelay(10 / portTICK_PERIOD_MS);
+        ThisThread::sleep_for(milliseconds(10));
         continue;
       }
       
@@ -105,19 +109,17 @@ void TaskSerialRead(void *pvParameters) {
           break;
       }
     }
-    vTaskDelay(10 / portTICK_PERIOD_MS);
+    ThisThread::sleep_for(milliseconds(10));
   }
 }
 
 // === MOTOR CONTROL TASK ===
-void TaskMotorControl(void *pvParameters) {
-  (void) pvParameters;
-  
+void TaskMotorControl() {
   while (1) {
     // E-stop check - highest priority
     if (isEStopActive()) {
       stopAllMotors();
-      vTaskDelay(50 / portTICK_PERIOD_MS);  // Check less frequently when stopped
+      ThisThread::sleep_for(milliseconds(50));
       continue;
     }
 
@@ -151,7 +153,7 @@ void TaskMotorControl(void *pvParameters) {
         break;
     }
     
-    vTaskDelay(10 / portTICK_PERIOD_MS);
+    ThisThread::sleep_for(milliseconds(10));
   }
 }
 
