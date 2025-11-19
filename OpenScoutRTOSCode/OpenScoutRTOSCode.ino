@@ -34,6 +34,7 @@ void initializeWiFi();
 bool isWiFiConnected();
 bool isROSConnected();
 void checkConnections();
+WiFiClient* getROSClient();
 
 // Helper Functions
 void updateSpeed(int speedLevel);
@@ -108,9 +109,36 @@ void TaskSerialRead(void* pvParameters) {
 void TaskSerialRead() {  
 #endif
   while (1) {
-    if (Serial.available() > 0) {
-      char input = Serial.read();
-
+    char input = 0;
+    bool commandReceived = false;
+    
+    // First check for WiFi commands
+    if (isROSConnected()) {
+      WiFiClient* client = getROSClient();
+      
+      if (client->available()) {
+        String command = client->readStringUntil('\n');
+        command.trim();
+        
+        if (command.length() > 0) {
+          input = command.charAt(0);
+          commandReceived = true;
+          Serial.print("WiFi command: ");
+          Serial.println(input);
+        }
+      }
+    }
+    
+    // If no WiFi command, check serial
+    if (!commandReceived && Serial.available() > 0) {
+      input = Serial.read();
+      commandReceived = true;
+      Serial.print("Serial command: ");
+      Serial.println(input);
+    }
+    
+    // Process the command if we received one
+    if (commandReceived) {
       // Check if e-stop is active
       if (isEStopActive() && input != 'R' && input != 'r') {
         Serial.println("E-STOP ACTIVE! Press 'R' to reset.");
