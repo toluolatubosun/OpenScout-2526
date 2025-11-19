@@ -30,7 +30,20 @@ Simple dual-motor robot with FreeRTOS control and emergency stop.
 - Arduino → USB or separate 5V supply
 ---
 
-## Step 2: Install Arduino IDE Library
+## Step 2: Configure WiFi Settings
+
+1. Open `ros_wifi_bridge` file
+2. Update WiFi credentials:
+   - Change `WIFI_SSID` to your network name
+   - Change `WIFI_PASSWORD` to your network password
+3. Update ROS connection:
+   - Set `ROS_SERVER_IP` to your computer's IP address
+   - Set `ROS_SERVER_PORT` (default: 11411)
+4. **Important**: Connect your PC to the same WiFi network
+
+---
+
+## Step 3: Install Arduino IDE Library
 
 1. Open Arduino IDE
 2. Go to **Tools → Manage Libraries**
@@ -39,7 +52,7 @@ Simple dual-motor robot with FreeRTOS control and emergency stop.
 
 ---
 
-## Step 3: Add FreeRTOS Library (ZIP)
+## Step 4: Add FreeRTOS Library (ZIP)
 
 1. Download: https://github.com/straccio/Arduino_Due_FreeRTOS/archive/refs/heads/master.zip
 2. Arduino IDE → **Sketch → Include Library → Add .ZIP Library**
@@ -48,7 +61,7 @@ Simple dual-motor robot with FreeRTOS control and emergency stop.
 
 ---
 
-## Step 4: Upload Code
+## Step 5: Upload Code
 
 1. Open `OpenScoutArduinoCode.ino`
 2. Select your board: **Tools → Board → Arduino Uno**

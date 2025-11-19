@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  ros:
+    build: .
+    network_mode: "host"
+    stdin_open: true
+    tty: true
+    environment:
+      - ROS_MASTER_URI=http://localhost:11311
+      - ROS_HOSTNAME=localhost
+    volumes:
+      - ./keyboard_control.py:/app/keyboard_control.py

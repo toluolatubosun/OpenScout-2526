@@ -29,6 +29,12 @@ bool isEStopActive();
 void resetEStop();
 bool isEStopButtonPressed();
 
+// WiFi Declarations
+void initializeWiFi();
+bool isWiFiConnected();
+bool isROSConnected();
+void checkConnections();
+
 // Helper Functions
 void updateSpeed(int speedLevel);
 void updateDuration(int change);
@@ -38,18 +44,22 @@ void printMenu();
 #ifdef USE_FREERTOS
   void TaskSerialRead(void* pvParameters);
   void TaskMotorControl(void* pvParameters);
+  void TaskWiFiMonitor(void* pvParameters);
 #else
   void TaskSerialRead();
   void TaskMotorControl();
+  void TaskWiFiMonitor();
 #endif
 
 // === RTOS THREAD/TASK HANDLES ===
 #ifdef USE_MBED_OS
   Thread serialThread;
   Thread motorThread;
+  Thread wifiThread;
 #else
   TaskHandle_t serialTaskHandle;
   TaskHandle_t motorTaskHandle;
+  TaskHandle_t wifiTaskHandle;
 #endif
 
 // === RTOS ABSTRACTION LAYER ===
@@ -65,9 +75,11 @@ void rtos_create_tasks() {
   #ifdef USE_MBED_OS
     serialThread.start(TaskSerialRead);
     motorThread.start(TaskMotorControl);
+    wifiThread.start(TaskWiFiMonitor);
   #else
     xTaskCreate(TaskSerialRead, "Serial", 128, NULL, 1, &serialTaskHandle);
     xTaskCreate(TaskMotorControl, "Motor", 128, NULL, 1, &motorTaskHandle);
+    xTaskCreate(TaskWiFiMonitor, "WiFi", 128, NULL, 1, &wifiTaskHandle);
     vTaskStartScheduler();
   #endif
 }
@@ -78,6 +90,7 @@ void setup() {
 
   initializeMotorPins();
   initializeEStop();
+  initializeWiFi();
 
   printMenu();
 
@@ -202,6 +215,19 @@ void TaskMotorControl() {
     }
     
     rtos_delay_ms(10);
+  }
+}
+
+// === WIFI MONITORING TASK ===
+#ifdef USE_FREERTOS
+void TaskWiFiMonitor(void* pvParameters) {
+#else
+void TaskWiFiMonitor() {
+#endif
+  while (1) {
+    // Check connections every 5 seconds
+    checkConnections();
+    rtos_delay_ms(5000);
   }
 }
 
