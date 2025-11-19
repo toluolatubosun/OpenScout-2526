@@ -1,14 +1,8 @@
-FROM ros:noetic
-
-RUN apt-get update && apt-get install -y \
-    ros-noetic-rosserial-python \
-    ros-noetic-rosserial-server \
-    python3-pip \
-    && rm -rf /var/lib/apt/lists/*
+FROM ros:humble
 
 WORKDIR /app
-COPY keyboard_control.py /app/
+COPY ros_bridge.py /app/
 
-RUN chmod +x keyboard_control.py
+RUN chmod +x ros_bridge.py
 
 CMD ["bash"]
