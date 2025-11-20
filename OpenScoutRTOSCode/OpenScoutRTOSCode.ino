@@ -8,33 +8,17 @@
   #include <Arduino_FreeRTOS.h>
 #endif
 
+#include "e_stop.h"
+#include "wifi_manager.h"
+#include "motor_control.h"
+
 // === SHARED STATE (Global) ===
 volatile char currentCommand = 'X';
 volatile int currentSpeed = 150;
 volatile int stepDuration = 300;
 volatile unsigned long commandTime = 0;
 
-// === FORWARD DECLARATIONS  ===
-// Motor Controls Declarations
-void initializeMotorPins();
-void motorAForward();
-void motorABackward();
-void motorBForward();
-void motorBBackward();
-void stopAllMotors();
-
-// E-stop Declarations
-void initializeEStop();
-bool isEStopActive();
-void resetEStop();
-bool isEStopButtonPressed();
-
-// WiFi Declarations
-void initializeWiFi();
-bool isWiFiConnected();
-void checkConnections();
-
-// Helper Functions
+// === Helper Functions ===
 void updateSpeed(int speedLevel);
 void updateDuration(int change);
 void printMenu();

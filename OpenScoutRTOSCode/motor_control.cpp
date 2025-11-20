@@ -1,3 +1,4 @@
+#include "motor_control.h"
 #include <Arduino.h>
 
 // === MOTOR PIN DEFINITIONS ===

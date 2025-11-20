@@ -1,3 +1,4 @@
+#include "wifi_manager.h"
 #include <Arduino.h>
 #include <SPI.h>
 #include <WiFi.h>

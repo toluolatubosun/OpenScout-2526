@@ -1,3 +1,4 @@
+#include "e_stop.h"
 #include <Arduino.h>
 
 // === E-STOP PIN ===
