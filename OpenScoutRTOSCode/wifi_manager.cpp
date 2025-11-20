@@ -20,12 +20,10 @@ void connectWiFi() {
     return;
   }
   
-  // Disconnect any existing connection and set mode
-  WiFi.disconnect(true);
+  // Disconnect any existing connection
+  WiFi.disconnect();
   delay(1000);
-  WiFi.mode(WIFI_STA);
-  delay(500);
-  
+
   // Connect to WiFi
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   
