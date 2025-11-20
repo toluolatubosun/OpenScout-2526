@@ -122,41 +122,29 @@ void TaskSerialRead() {
     
     // Process the command if we received one
     if (commandReceived) {
-      // Check if e-stop is active
-      if (isEStopActive() && input != 'R' && input != 'r') {
-        Serial.println("E-STOP ACTIVE! Press 'R' to reset.");
-        rtos_delay_ms(10);
-        continue;
-      }
-      
       switch (input) {
         case 'W': case 'w':
           currentCommand = 'W';
           commandTime = millis();
-          Serial.println("Forward");
           break;
           
         case 'S': case 's':
           currentCommand = 'S';
           commandTime = millis();
-          Serial.println("Backward");
           break;
           
         case 'A': case 'a':
           currentCommand = 'A';
           commandTime = millis();
-          Serial.println("Turn Left");
           break;
           
         case 'D': case 'd':
           currentCommand = 'D';
           commandTime = millis();
-          Serial.println("Turn Right");
           break;
           
         case 'X': case 'x':
           currentCommand = 'X';
-          Serial.println("Stop");
           break;
 
         case 'R': case 'r':
@@ -191,6 +179,7 @@ void TaskMotorControl() {
     // E-stop check - highest priority
     if (isEStopActive()) {
       stopAllMotors();
+      Serial.println("E-STOP ACTIVE! Press 'R' to reset.");  
       rtos_delay_ms(10);
       continue;
     }
@@ -205,22 +194,27 @@ void TaskMotorControl() {
     
     switch (cmd) {
       case 'W':
+        Serial.println("Moving Forward");
         motorAForward();
         motorBForward();
         break;
       case 'S':
+        Serial.println("Moving Backward");
         motorABackward();
         motorBBackward();
         break;
       case 'A':
+        Serial.println("Turning Left");
         motorABackward();
         motorBForward();
         break;
       case 'D':
+        Serial.println("Turning Right");
         motorAForward();
         motorBBackward();
         break;
       case 'X':
+        Serial.println("Stopping Motors");
         stopAllMotors();
         break;
     }
