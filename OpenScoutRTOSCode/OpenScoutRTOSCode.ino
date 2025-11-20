@@ -81,11 +81,6 @@ void setup() {
   initializeMotorPins();
   initializeEStop();
   initializeWiFi();
-  
-  // NEW: Initialize TCP server after WiFi
-  if (WiFi.status() == WL_CONNECTED) {
-    initializeTCPServer();
-  }
 
   printMenu();
 
@@ -234,16 +229,33 @@ void TaskMotorControl() {
   }
 }
 
-// === WIFI MONITORING TASK (unchanged) ===
+// === WIFI MONITORING TASK ===
 #ifdef USE_FREERTOS
 void TaskWiFiMonitor(void* pvParameters) {
 #else
 void TaskWiFiMonitor() {
 #endif
+  bool tcpInitialized = false;
+  
   while (1) {
-    // Check connections every 15 seconds
+    bool wifiConnected = (WiFi.status() == WL_CONNECTED);
+    
+    // If WiFi connected and TCP not initialized
+    if (wifiConnected && !tcpInitialized) {
+      initializeTCPServer();
+      tcpInitialized = true;
+    }
+    
+    // If WiFi disconnected, mark TCP as needing re-init
+    if (!wifiConnected && tcpInitialized) {
+      Serial.println("WiFi lost - TCP will reinitialize on reconnect");
+      tcpInitialized = false;
+    }
+    
+    // Check/reconnect WiFi
     checkConnections();
-    rtos_delay_ms(15000);
+    
+    rtos_delay_ms(15000);  // Check every 15 seconds
   }
 }
 
