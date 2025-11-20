@@ -1,6 +1,7 @@
 #include "tcp_server.h"
 #include <Arduino.h>
 #include <WiFi.h>
+#include <ArduinoJson.h> 
 
 // === TCP CONFIGURATION ===
 const int TCP_PORT = 8888;
@@ -19,9 +20,16 @@ extern volatile bool eStopLatched;
 
 // === INITIALIZE TCP SERVER ===
 void initializeTCPServer() {
+  // Double-check WiFi is actually connected
   if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("WiFi not connected - cannot start TCP server");
+    Serial.println("ERROR: WiFi not connected - cannot start TCP server");
     return;
+  }
+  
+  // Clean up existing server if any
+  if (tcpServer != nullptr) {
+    delete tcpServer;
+    tcpServer = nullptr;
   }
   
   tcpServer = new WiFiServer(TCP_PORT);
@@ -39,6 +47,18 @@ void initializeTCPServer() {
 
 // === HANDLE TCP CLIENT ===
 void handleTCPClient() {
+  // Safety check - if WiFi is down, do nothing
+  if (WiFi.status() != WL_CONNECTED || tcpServer == nullptr) {
+    if (clientConnected) {
+      clientConnected = false;
+      if (tcpClient) {
+        tcpClient.stop();
+      }
+      Serial.println("WiFi down - TCP client disconnected");
+    }
+    return;
+  }
+  
   // Check for new client
   if (!clientConnected) {
     tcpClient = tcpServer->available();
@@ -62,33 +82,49 @@ void handleTCPClient() {
     String jsonStr = tcpClient.readStringUntil('\n');
     jsonStr.trim();
     
-    // Simple JSON parsing (expecting: {"cmd":"W","speed":150,"duration":300})
-    // Find values between quotes/colons
-    int cmdIdx = jsonStr.indexOf("\"cmd\":\"") + 7;
-    if (cmdIdx > 7) {
-      char cmd = jsonStr.charAt(cmdIdx);
-      currentCommand = cmd;
-      commandTime = millis();
-      Serial.print("TCP Command: ");
-      Serial.println(cmd);
+    // Parse JSON with ArduinoJson
+    StaticJsonDocument<200> doc;
+    DeserializationError error = deserializeJson(doc, jsonStr);
+    
+    if (error) {
+      Serial.print("JSON parse error: ");
+      Serial.println(error.c_str());
+      return;
     }
     
-    int speedIdx = jsonStr.indexOf("\"speed\":") + 8;
-    if (speedIdx > 8) {
-      int speed = jsonStr.substring(speedIdx).toInt();
+    // Extract values safely
+    if (doc.containsKey("cmd")) {
+      const char* cmdStr = doc["cmd"];
+      if (cmdStr && strlen(cmdStr) > 0) {
+        // Support multi-character commands (store first char for now)
+        // To support full strings later, change currentCommand to char array
+        currentCommand = cmdStr[0];
+        commandTime = millis();
+        Serial.print("TCP Command: ");
+        Serial.println(cmdStr);  // Print full command string
+      }
+    }
+    
+    if (doc.containsKey("speed")) {
+      int speed = doc["speed"];
       if (speed >= 0 && speed <= 255) {
         currentSpeed = speed;
         Serial.print("TCP Speed: ");
         Serial.println(speed);
+      } else {
+        Serial.print("Invalid speed received: ");
+        Serial.println(speed);
       }
     }
     
-    int durIdx = jsonStr.indexOf("\"duration\":") + 11;
-    if (durIdx > 11) {
-      int dur = jsonStr.substring(durIdx).toInt();
+    if (doc.containsKey("duration")) {
+      int dur = doc["duration"];
       if (dur >= 100 && dur <= 900) {
         stepDuration = dur;
         Serial.print("TCP Duration: ");
+        Serial.println(dur);
+      } else {
+        Serial.print("Invalid duration received: ");
         Serial.println(dur);
       }
     }
@@ -97,22 +133,24 @@ void handleTCPClient() {
 
 // === SEND STATUS JSON ===
 void sendStatusJSON() {
-  if (!clientConnected || !tcpClient.connected()) {
+  // Safety checks
+  if (WiFi.status() != WL_CONNECTED || !clientConnected || !tcpClient.connected()) {
     return;
   }
   
-  // Get WiFi RSSI
-  long rssi = WiFi.RSSI();
+  // Build JSON with ArduinoJson
+  StaticJsonDocument<200> doc;
+  doc["speed"] = currentSpeed;
+  doc["duration"] = stepDuration;
+  doc["command"] = String(currentCommand);
+  doc["time"] = commandTime;
+  doc["e_stop"] = eStopLatched;
+  doc["rssi"] = WiFi.RSSI();
   
-  // Build JSON: {"speed":150,"duration":300,"command":"W","time":1234,"e_stop":false,"rssi":-45}
-  String json = "{";
-  json += "\"speed\":" + String(currentSpeed) + ",";
-  json += "\"duration\":" + String(stepDuration) + ",";
-  json += "\"command\":\"" + String(currentCommand) + "\",";
-  json += "\"time\":" + String(commandTime) + ",";
-  json += "\"e_stop\":" + String(eStopLatched ? "true" : "false") + ",";
-  json += "\"rssi\":" + String(rssi);
-  json += "}\n";
+  // Serialize to string
+  String output;
+  serializeJson(doc, output);
+  output += "\n";
   
-  tcpClient.print(json);
+  tcpClient.print(output);
 }

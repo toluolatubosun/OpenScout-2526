@@ -63,8 +63,8 @@ class ArduinoROSBridge(Node):
         
         # Determine command based on Twist values
         cmd = 'X'  # Default stop
-        speed = 150  # Default speed
-        duration = 300  # Default duration
+        speed = 150  # Default speed in PWM (0-255)
+        duration = 300  # Default duration in ms (100-900)
         
         # Thresholds
         LINEAR_THRESHOLD = 0.1
@@ -96,9 +96,9 @@ class ArduinoROSBridge(Node):
             "duration": duration
         }
         
-        # Send to Arduino
+        # Send to Arduino (no spaces in JSON for Arduino parser)
         try:
-            json_str = json.dumps(command) + '\n'
+            json_str = json.dumps(command, separators=(',', ':')) + '\n'
             self.socket.sendall(json_str.encode())
             self.get_logger().info(f'Sent: {command}', throttle_duration_sec=0.5)
         except Exception as e:
