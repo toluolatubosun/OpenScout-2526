@@ -9,6 +9,7 @@
 #endif
 
 #include "e_stop.h"
+#include "tcp_server.h"
 #include "wifi_manager.h"
 #include "motor_control.h"
 
@@ -28,10 +29,12 @@ void printMenu();
   void TaskSerialRead(void* pvParameters);
   void TaskMotorControl(void* pvParameters);
   void TaskWiFiMonitor(void* pvParameters);
+  void TaskTCPServer(void* pvParameters);
 #else
   void TaskSerialRead();
   void TaskMotorControl();
   void TaskWiFiMonitor();
+  void TaskTCPServer();
 #endif
 
 // === RTOS THREAD/TASK HANDLES ===
@@ -39,10 +42,12 @@ void printMenu();
   Thread serialThread;
   Thread motorThread;
   Thread wifiThread;
+  Thread tcpThread;
 #else
   TaskHandle_t serialTaskHandle;
   TaskHandle_t motorTaskHandle;
   TaskHandle_t wifiTaskHandle;
+  TaskHandle_t tcpTaskHandle;
 #endif
 
 // === RTOS ABSTRACTION LAYER ===
@@ -59,10 +64,12 @@ void rtos_create_tasks() {
     serialThread.start(TaskSerialRead);
     motorThread.start(TaskMotorControl);
     wifiThread.start(TaskWiFiMonitor);
+    tcpThread.start(TaskTCPServer);
   #else
     xTaskCreate(TaskSerialRead, "Serial", 256, NULL, 1, &serialTaskHandle);
     xTaskCreate(TaskMotorControl, "Motor", 128, NULL, 1, &motorTaskHandle);
     xTaskCreate(TaskWiFiMonitor, "WiFi", 128, NULL, 1, &wifiTaskHandle);
+    xTaskCreate(TaskTCPServer, "TCP", 256, NULL, 1, &tcpTaskHandle);
     vTaskStartScheduler();
   #endif
 }
@@ -74,6 +81,11 @@ void setup() {
   initializeMotorPins();
   initializeEStop();
   initializeWiFi();
+  
+  // NEW: Initialize TCP server after WiFi
+  if (WiFi.status() == WL_CONNECTED) {
+    initializeTCPServer();
+  }
 
   printMenu();
 
@@ -84,7 +96,7 @@ void loop() {
   // Empty
 }
 
-// === SERIAL READING TASK ===
+// === SERIAL READING TASK (unchanged) ===
 #ifdef USE_FREERTOS
 void TaskSerialRead(void* pvParameters) {
 #else
@@ -109,7 +121,7 @@ void TaskSerialRead() {
 
     if (commandReceived) {
       Serial.print(commandSource);
-      Serial.print("Command: ");
+      Serial.print(" Command: ");
       Serial.println(input);
     }
     
@@ -174,7 +186,7 @@ void TaskSerialRead() {
   }
 }
 
-// === MOTOR CONTROL TASK ===
+// === MOTOR CONTROL TASK (unchanged) ===
 #ifdef USE_FREERTOS
 void TaskMotorControl(void* pvParameters) {
 #else
@@ -222,7 +234,7 @@ void TaskMotorControl() {
   }
 }
 
-// === WIFI MONITORING TASK ===
+// === WIFI MONITORING TASK (unchanged) ===
 #ifdef USE_FREERTOS
 void TaskWiFiMonitor(void* pvParameters) {
 #else
@@ -235,7 +247,29 @@ void TaskWiFiMonitor() {
   }
 }
 
-// === HELPER FUNCTIONS ===
+// === NEW: TCP SERVER TASK ===
+#ifdef USE_FREERTOS
+void TaskTCPServer(void* pvParameters) {
+#else
+void TaskTCPServer() {
+#endif
+  while (1) {
+    // Handle incoming TCP connections and commands
+    handleTCPClient();
+    
+    // Send status every 100ms if client connected
+    static unsigned long lastStatusTime = 0;
+    unsigned long now = millis();
+    if (clientConnected && (now - lastStatusTime) >= 100) {
+      sendStatusJSON();
+      lastStatusTime = now;
+    }
+    
+    rtos_delay_ms(10);
+  }
+}
+
+// === HELPER FUNCTIONS (unchanged) ===
 void updateSpeed(int speedLevel) {
   currentSpeed = map(speedLevel, 0, 9, 50, 255);
   Serial.print("Speed: ");

@@ -1,146 +1,177 @@
 #!/usr/bin/env python3
+
 import rclpy
 from rclpy.node import Node
-from std_msgs.msg import String
 from geometry_msgs.msg import Twist
 import socket
+import json
+import sys
 import threading
 import time
 
-class ArduinoBridge(Node):
-    def __init__(self):
-        super().__init__('arduino_bridge')
-        self.publisher_ = self.create_publisher(String, 'cmd_sent', 10)
-        self.status_publisher = self.create_publisher(String, 'arduino_status', 10)
+class ArduinoROSBridge(Node):
+    def __init__(self, arduino_ip, arduino_port=8888):
+        super().__init__('arduino_ros_bridge')
         
-        # Subscribe to cmd_vel for robot movement
-        self.cmd_subscription = self.create_subscription(
+        self.arduino_ip = arduino_ip
+        self.arduino_port = arduino_port
+        self.socket = None
+        self.connected = False
+        
+        # Connect to Arduino
+        self.connect_to_arduino()
+        
+        # Subscribe to cmd_vel
+        self.subscription = self.create_subscription(
             Twist,
             'cmd_vel',
             self.cmd_vel_callback,
             10)
         
-        # Subscribe to direct commands
-        self.command_subscription = self.create_subscription(
-            String,
-            'arduino_command',
-            self.command_callback,
-            10)
+        # Start status receiver thread
+        self.status_thread = threading.Thread(target=self.receive_status, daemon=True)
+        self.status_thread.start()
         
-        self.conn = None
-        self.server_running = False
-        self.setup_server()
-        
+        self.get_logger().info('Arduino ROS Bridge started')
+        self.get_logger().info(f'Subscribed to /cmd_vel')
+    
+    def connect_to_arduino(self):
+        """Connect to Arduino TCP server"""
+        try:
+            self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.socket.settimeout(5.0)
+            self.get_logger().info(f'Connecting to Arduino at {self.arduino_ip}:{self.arduino_port}...')
+            self.socket.connect((self.arduino_ip, self.arduino_port))
+            self.connected = True
+            self.get_logger().info('Connected to Arduino!')
+        except Exception as e:
+            self.get_logger().error(f'Failed to connect to Arduino: {e}')
+            self.connected = False
+    
     def cmd_vel_callback(self, msg):
-        # Convert Twist message to Arduino commands
+        """Convert Twist message to Arduino command"""
+        if not self.connected:
+            return
+        
+        # Extract velocities
         linear_x = msg.linear.x
         angular_z = msg.angular.z
         
-        # Simple mapping: forward/backward and turn
-        if linear_x > 0.1:
-            self.send_command('W')
-        elif linear_x < -0.1:
-            self.send_command('S')
-        elif angular_z > 0.1:
-            self.send_command('A')  # Turn left
-        elif angular_z < -0.1:
-            self.send_command('D')  # Turn right
-        else:
-            self.send_command('X')  # Stop
+        # Determine command based on Twist values
+        cmd = 'X'  # Default stop
+        speed = 150  # Default speed
+        duration = 300  # Default duration
+        
+        # Thresholds
+        LINEAR_THRESHOLD = 0.1
+        ANGULAR_THRESHOLD = 0.1
+        
+        # Map to W/A/S/D commands
+        if abs(linear_x) > LINEAR_THRESHOLD:
+            if linear_x > 0:
+                cmd = 'W'  # Forward
+                speed = int(abs(linear_x) * 255)
+            else:
+                cmd = 'S'  # Backward
+                speed = int(abs(linear_x) * 255)
+        elif abs(angular_z) > ANGULAR_THRESHOLD:
+            if angular_z > 0:
+                cmd = 'A'  # Turn left
+                speed = int(abs(angular_z) * 255)
+            else:
+                cmd = 'D'  # Turn right
+                speed = int(abs(angular_z) * 255)
+        
+        # Clamp speed
+        speed = max(50, min(255, speed))
+        
+        # Build JSON command
+        command = {
+            "cmd": cmd,
+            "speed": speed,
+            "duration": duration
+        }
+        
+        # Send to Arduino
+        try:
+            json_str = json.dumps(command) + '\n'
+            self.socket.sendall(json_str.encode())
+            self.get_logger().info(f'Sent: {command}', throttle_duration_sec=0.5)
+        except Exception as e:
+            self.get_logger().error(f'Send error: {e}')
+            self.connected = False
+    
+    def receive_status(self):
+        """Receive status JSON from Arduino"""
+        buffer = ""
+        while rclpy.ok():
+            if not self.connected:
+                time.sleep(1)
+                continue
             
-    def command_callback(self, msg):
-        self.send_command(msg.data)
-        
-    def setup_server(self):
-        def server_thread():
-            while True:
-                try:
-                    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                    server.bind(('0.0.0.0', 11411))
-                    server.listen(1)
-                    
-                    self.get_logger().info('Waiting for Arduino on port 11411...')
-                    self.conn, addr = server.accept()
-                    self.get_logger().info(f'Arduino connected: {addr}')
-                    self.server_running = True
-                    
-                    # Publish connection status
-                    status_msg = String()
-                    status_msg.data = f"Arduino connected from {addr}"
-                    self.status_publisher.publish(status_msg)
-                    
-                    # Simple connection monitoring - just check if socket is alive
-                    while self.server_running:
-                        try:
-                            # Test connection by trying to send empty data (but don't actually send)
-                            if self.conn.fileno() == -1:  # Socket closed
-                                break
-                            time.sleep(2)  # Check every 2 seconds
-                        except:
-                            self.get_logger().warn('Arduino disconnected')
-                            self.conn = None
-                            self.server_running = False
-                            break
-                            
-                except Exception as e:
-                    self.get_logger().error(f'Server error: {e}')
-                    time.sleep(2)
-                finally:
-                    try:
-                        if server:
-                            server.close()
-                    except:
-                        pass
-                    self.conn = None
-                    self.server_running = False
-        
-        threading.Thread(target=server_thread, daemon=True).start()
-        
-    def send_command(self, cmd):
-        if self.conn:
             try:
-                self.conn.sendall(cmd.encode() + b'\n')
-                msg = String()
-                msg.data = cmd
-                self.publisher_.publish(msg)
-                self.get_logger().info(f'Sent: {cmd}')
-                return True
+                data = self.socket.recv(1024).decode()
+                if not data:
+                    self.get_logger().warn('Arduino disconnected')
+                    self.connected = False
+                    break
+                
+                buffer += data
+                
+                # Process complete JSON messages (lines)
+                while '\n' in buffer:
+                    line, buffer = buffer.split('\n', 1)
+                    if line.strip():
+                        try:
+                            status = json.loads(line)
+                            self.get_logger().info(
+                                f'Status: cmd={status["command"]}, '
+                                f'speed={status["speed"]}, '
+                                f'duration={status["duration"]}, '
+                                f'e_stop={status["e_stop"]}, '
+                                f'rssi={status["rssi"]} dBm',
+                                throttle_duration_sec=1.0
+                            )
+                        except json.JSONDecodeError:
+                            pass
+            except socket.timeout:
+                continue
             except Exception as e:
-                self.get_logger().warn(f'Failed to send command: {e}')
-                self.conn = None
-                self.server_running = False
-                return False
-        else:
-            self.get_logger().warn('No Arduino connection')
-            return False
+                self.get_logger().error(f'Receive error: {e}')
+                self.connected = False
+                break
 
-def main():
-    rclpy.init()
-    bridge = ArduinoBridge()
+def main(args=None):
+    rclpy.init(args=args)
     
-    print("ROS2 Arduino Bridge started!")
-    print("Send commands via:")
-    print("  ros2 topic pub /arduino_command std_msgs/String \"data: 'W'\"")
-    print("  ros2 topic pub /cmd_vel geometry_msgs/Twist ...")
-    print("Or use keyboard input:")
+    # Get Arduino IP
+    if len(sys.argv) > 1:
+        arduino_ip = sys.argv[1]
+    else:
+        arduino_ip = input("Enter Arduino IP address: ").strip()
     
-    def spin_ros():
-        rclpy.spin(bridge)
+    if not arduino_ip:
+        print("No IP provided. Exiting.")
+        return
     
-    ros_thread = threading.Thread(target=spin_ros, daemon=True)
-    ros_thread.start()
+    print(f"\n{'='*50}")
+    print(f"Arduino ROS Bridge - ROS 2 Humble")
+    print(f"{'='*50}")
+    print(f"Arduino IP: {arduino_ip}:8888")
+    print(f"Listening to: /cmd_vel")
+    print(f"\nUse teleop_twist_keyboard to control:")
+    print(f"  ros2 run teleop_twist_keyboard teleop_twist_keyboard")
+    print(f"{'='*50}\n")
+    
+    node = ArduinoROSBridge(arduino_ip)
     
     try:
-        while rclpy.ok():
-            key = input("CMD (WASD/0-9/X/+/-): ").strip()
-            if key:
-                bridge.send_command(key.upper())
+        rclpy.spin(node)
     except KeyboardInterrupt:
         pass
-    
-    bridge.destroy_node()
-    rclpy.shutdown()
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
 
 if __name__ == '__main__':
     main()

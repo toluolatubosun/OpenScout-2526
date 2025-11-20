@@ -1,18 +1,21 @@
 FROM ros:humble
 
+# Install teleop_twist_keyboard
 RUN apt-get update && apt-get install -y \
+    ros-humble-teleop-twist-keyboard \
     python3-pip \
-    iputils-ping \
-    net-tools \
     && rm -rf /var/lib/apt/lists/*
 
+# Create app directory
 WORKDIR /app
+
+# Copy bridge script
 COPY ros_bridge.py /app/
+COPY launch.sh /app/
 
-RUN chmod +x ros_bridge.py
+RUN chmod +x /app/launch.sh
 
-# Set up ROS environment
-ENV ROS_DOMAIN_ID=0
-ENV RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+# Source ROS
+RUN echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
 
-CMD ["bash"]
+CMD ["/app/launch.sh"]
