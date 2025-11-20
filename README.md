@@ -32,23 +32,21 @@ Simple dual-motor robot with FreeRTOS control and emergency stop.
 
 ## Step 2: Configure WiFi Settings
 
-1. Open `ros_wifi_bridge` file
+1. Open `wifi_manager.cpp` file
 2. Update WiFi credentials:
    - Change `WIFI_SSID` to your network name
    - Change `WIFI_PASSWORD` to your network password
-3. Update ROS connection:
-   - Set `ROS_SERVER_IP` to your computer's IP address
-   - Set `ROS_SERVER_PORT` (default: 11411)
-4. **Important**: Connect your PC to the same WiFi network
+3. **Important**: Connect your PC to the same WiFi network
 
 ---
 
-## Step 3: Install Arduino IDE Library
+## Step 3: Install Arduino IDE Libraries
 
 1. Open Arduino IDE
 2. Go to **Tools → Manage Libraries**
-3. Search for `FreeRTOS`
-4. Install **FreeRTOS by Richard Barry** version **11.1.0-3**
+3. Search for and install:
+   - **FreeRTOS by Richard Barry** version **11.1.0-3**
+   - **ArduinoJson** version **7.4.2**
 
 ---
 
@@ -63,10 +61,34 @@ Simple dual-motor robot with FreeRTOS control and emergency stop.
 
 ## Step 5: Upload Code
 
-1. Open `OpenScoutArduinoCode.ino`
+1. Open `OpenScoutRTOSCode.ino`
 2. Select your board: **Tools → Board → Arduino Uno**
 3. Select port: **Tools → Port → (your port)**
 4. Click **Upload**
+5. Open Serial Monitor to see the Arduino's IP address
+
+---
+
+## Step 6: Start ROS Bridge
+
+Use the Arduino IP from Serial Monitor in these commands:
+
+**Terminal 1 (Start Bridge):**
+```bash
+cd OpenScoutROS
+docker-compose build
+docker-compose run ros python3 /app/ros_bridge.py YOUR_ARDUINO_IP
+```
+
+**Terminal 2 (Start Teleop):**
+```bash
+docker exec -it CONTAINER_ID bash -c "source /opt/ros/humble/setup.bash && ros2 run teleop_twist_keyboard teleop_twist_keyboard"
+```
+
+Replace `YOUR_ARDUINO_IP` with the IP shown in Arduino Serial Monitor.
+Replace `CONTAINER_ID` with the container ID from Terminal 1.
+
+**Alternatively**: Use the provided `.sh` scripts: `./quick_start.sh` and `./start_teleop.sh`
 
 ---
 
