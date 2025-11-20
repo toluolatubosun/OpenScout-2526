@@ -18,6 +18,10 @@ class ArduinoROSBridge(Node):
         self.socket = None
         self.connected = False
         
+        # Status printing configuration
+        self.STATUS_PRINT_INTERVAL = 10  # Print every Nth status message
+        self.status_counter = 0
+        
         # Connect to Arduino
         self.connect_to_arduino()
         
@@ -124,14 +128,18 @@ class ArduinoROSBridge(Node):
                     if line.strip():
                         try:
                             status = json.loads(line)
-                            self.get_logger().info(
-                                f'Status: cmd={status["command"]}, '
-                                f'speed={status["speed"]}, '
-                                f'duration={status["duration"]}, '
-                                f'e_stop={status["e_stop"]}, '
-                                f'rssi={status["rssi"]} dBm',
-                                throttle_duration_sec=1.0
-                            )
+                            self.status_counter += 1
+                            
+                            # Only print every STATUS_PRINT_INTERVAL messages
+                            if self.status_counter % self.STATUS_PRINT_INTERVAL == 0:
+                                self.get_logger().info(
+                                    f'Status: cmd={status["command"]}, '
+                                    f'speed={status["speed"]}, '
+                                    f'duration={status["duration"]}, '
+                                    f'e_stop={status["e_stop"]}, '
+                                    f'rssi={status["rssi"]} dBm',
+                                    throttle_duration_sec=1.0
+                                )
                         except json.JSONDecodeError:
                             pass
             except socket.timeout:
