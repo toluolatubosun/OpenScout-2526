@@ -108,13 +108,24 @@ void TaskSerialRead() {
 #endif
   while (1) {
     char input = 0;
+    String commandSource = "Serial";
     bool commandReceived = false;
     
     // Check serial for commands
     if (!commandReceived && Serial.available() > 0) {
       input = Serial.read();
       commandReceived = true;
-      Serial.print("Serial command: ");
+      commandSource = "Serial";
+    }
+
+    // Skip processing whitespace/empty input
+    if (input == ' ' || input == '\t' || input == '\n' || input == '\r') {
+      continue; 
+    }
+
+    if (commandReceived) {
+      Serial.print(commandSource);
+      Serial.print("Command: ");
       Serial.println(input);
     }
     
@@ -234,9 +245,9 @@ void TaskWiFiMonitor(void* pvParameters) {
 void TaskWiFiMonitor() {
 #endif
   while (1) {
-    // Check connections every 5 seconds
+    // Check connections every 15 seconds
     checkConnections();
-    rtos_delay_ms(5000);
+    rtos_delay_ms(15000);
   }
 }
 
@@ -262,6 +273,7 @@ void updateDuration(int change) {
 }
 
 void printMenu() {
+  Serial.println("================================");
   Serial.println("=== Real-Time Motor Control ===");
   Serial.println("W/S = Forward/Backward");
   Serial.println("A/D = Turn Left/Right");
