@@ -1,24 +1,43 @@
 #include "motor_control.h"
 #include <Arduino.h>
 
+#if defined(ARDUINO_GIGA)
+  #include "mbed.h"
+  using namespace rtos;
+#endif
+
 // === MOTOR PIN DEFINITIONS ===
 const int enA = 3, in1 = 4, in2 = 5;  // Motor A (Left)
 const int enB = 9, in3 = 7, in4 = 8;  // Motor B (Right)
 
-// Access to global speed variable from main file
-extern volatile int currentSpeed;
+// Access to global command from main file
+extern MotorCommand currentCommand;
+
+#if defined(ARDUINO_GIGA)
+  extern rtos::Mutex commandMutex;
+#else
+  extern SemaphoreHandle_t commandMutex;
+#endif
 
 // === MOTOR A (LEFT) ===
 void motorAForward() {
+  commandMutex.lock();
+  int speed = currentCommand.speed;
+  commandMutex.unlock();
+  
   digitalWrite(in1, HIGH);
   digitalWrite(in2, LOW);
-  analogWrite(enA, currentSpeed);
+  analogWrite(enA, speed);
 }
 
 void motorABackward() {
+  commandMutex.lock();
+  int speed = currentCommand.speed;
+  commandMutex.unlock();
+
   digitalWrite(in1, LOW);
   digitalWrite(in2, HIGH);
-  analogWrite(enA, currentSpeed);
+  analogWrite(enA, speed);
 }
 
 void stopMotorA() {
@@ -29,15 +48,23 @@ void stopMotorA() {
 
 // === MOTOR B (RIGHT) ===
 void motorBForward() {
+  commandMutex.lock();
+  int speed = currentCommand.speed;
+  commandMutex.unlock();
+  
   digitalWrite(in4, HIGH);
   digitalWrite(in3, LOW);
-  analogWrite(enB, currentSpeed);
+  analogWrite(enB, speed);
 }
 
 void motorBBackward() {
+  commandMutex.lock();
+  int speed = currentCommand.speed;
+  commandMutex.unlock();
+  
   digitalWrite(in4, LOW);
   digitalWrite(in3, HIGH);
-  analogWrite(enB, currentSpeed);
+  analogWrite(enB, speed);
 }
 
 void stopMotorB() {

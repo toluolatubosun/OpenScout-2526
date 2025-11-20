@@ -1,7 +1,13 @@
 #include "tcp_server.h"
+#include "motor_control.h"
 #include <Arduino.h>
 #include <WiFi.h>
 #include <ArduinoJson.h> 
+
+#if defined(ARDUINO_GIGA)
+  #include "mbed.h"
+  using namespace rtos;
+#endif
 
 // === TCP CONFIGURATION ===
 const int TCP_PORT = 8888;
@@ -12,11 +18,15 @@ WiFiClient tcpClient;
 volatile bool clientConnected = false;
 
 // Access to global state from main
-extern volatile char currentCommand;
-extern volatile int currentSpeed;
-extern volatile int stepDuration;
-extern volatile unsigned long commandTime;
+struct MotorCommand; // Forward declare the struct (must match main .ino)
 extern volatile bool eStopLatched;
+extern MotorCommand currentCommand;
+
+#if defined(ARDUINO_GIGA)
+  extern rtos::Mutex commandMutex;
+#else
+  extern SemaphoreHandle_t commandMutex;
+#endif
 
 // === INITIALIZE TCP SERVER ===
 void initializeTCPServer() {
@@ -91,24 +101,23 @@ void handleTCPClient() {
       Serial.println(error.c_str());
       return;
     }
+
+    MotorCommand newCmd = currentCommand;
     
-    // Extract values safely
     if (doc.containsKey("cmd")) {
       const char* cmdStr = doc["cmd"];
       if (cmdStr && strlen(cmdStr) > 0) {
-        // Support multi-character commands (store first char for now)
-        // To support full strings later, change currentCommand to char array
-        currentCommand = cmdStr[0];
-        commandTime = millis();
+        newCmd.cmd = cmdStr[0];
+        newCmd.timestamp = millis();
         Serial.print("TCP Command: ");
-        Serial.println(cmdStr);  // Print full command string
+        Serial.println(cmdStr);
       }
     }
     
-    if (doc.containsKey("speed")) {
+   if (doc.containsKey("speed")) {
       int speed = doc["speed"];
       if (speed >= 0 && speed <= 255) {
-        currentSpeed = speed;
+        newCmd.speed = speed;
         Serial.print("TCP Speed: ");
         Serial.println(speed);
       } else {
@@ -120,7 +129,7 @@ void handleTCPClient() {
     if (doc.containsKey("duration")) {
       int dur = doc["duration"];
       if (dur >= 100 && dur <= 900) {
-        stepDuration = dur;
+        newCmd.duration = dur;
         Serial.print("TCP Duration: ");
         Serial.println(dur);
       } else {
@@ -128,6 +137,11 @@ void handleTCPClient() {
         Serial.println(dur);
       }
     }
+
+    // Update the global command atomically
+    commandMutex.lock();
+    currentCommand = newCmd;
+    commandMutex.unlock();
   }
 }
 
@@ -138,12 +152,16 @@ void sendStatusJSON() {
     return;
   }
   
+  commandMutex.lock();
+  MotorCommand cmd = currentCommand;
+  commandMutex.unlock();
+
   // Build JSON with ArduinoJson
   StaticJsonDocument<200> doc;
-  doc["speed"] = currentSpeed;
-  doc["duration"] = stepDuration;
-  doc["command"] = String(currentCommand);
-  doc["time"] = commandTime;
+  doc["speed"] = cmd.speed;
+  doc["duration"] = cmd.duration;
+  doc["command"] = String(cmd.cmd);
+  doc["time"] = cmd.timestamp;
   doc["e_stop"] = eStopLatched;
   doc["rssi"] = WiFi.RSSI();
   

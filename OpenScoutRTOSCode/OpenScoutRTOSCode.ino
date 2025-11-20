@@ -14,10 +14,14 @@
 #include "motor_control.h"
 
 // === SHARED STATE (Global) ===
-volatile char currentCommand = 'X';
-volatile int currentSpeed = 150;
-volatile int stepDuration = 300;
-volatile unsigned long commandTime = 0;
+MotorCommand currentCommand = {'X', 150, 300, 0};
+
+// Mutex to protect currentCommand from race conditions
+#ifdef USE_MBED_OS
+  rtos::Mutex commandMutex;
+#else
+  SemaphoreHandle_t commandMutex;
+#endif
 
 // === Helper Functions ===
 void updateSpeed(int speedLevel);
@@ -82,6 +86,11 @@ void setup() {
   initializeEStop();
   initializeWiFi();
 
+  // Initialize mutex (only needed for FreeRTOS)
+  #ifndef USE_MBED_OS
+    commandMutex = xSemaphoreCreateMutex();
+  #endif
+
   printMenu();
 
   rtos_create_tasks();
@@ -124,27 +133,37 @@ void TaskSerialRead() {
     if (commandReceived) {
       switch (input) {
         case 'W': case 'w':
-          currentCommand = 'W';
-          commandTime = millis();
+          commandMutex.lock();
+          currentCommand.cmd = 'W';
+          currentCommand.timestamp = millis();
+          commandMutex.unlock();
           break;
           
         case 'S': case 's':
-          currentCommand = 'S';
-          commandTime = millis();
+          commandMutex.lock();
+          currentCommand.cmd = 'S';
+          currentCommand.timestamp = millis();
+          commandMutex.unlock();
           break;
           
         case 'A': case 'a':
-          currentCommand = 'A';
-          commandTime = millis();
+          commandMutex.lock();
+          currentCommand.cmd = 'A';
+          currentCommand.timestamp = millis();
+          commandMutex.unlock();
           break;
           
         case 'D': case 'd':
-          currentCommand = 'D';
-          commandTime = millis();
+          commandMutex.lock();
+          currentCommand.cmd = 'D';
+          currentCommand.timestamp = millis();
+          commandMutex.unlock();
           break;
           
         case 'X': case 'x':
-          currentCommand = 'X';
+          commandMutex.lock();
+          currentCommand.cmd = 'X';
+          commandMutex.unlock();
           break;
 
         case 'R': case 'r':
@@ -176,11 +195,18 @@ void TaskMotorControl(void* pvParameters) {
 void TaskMotorControl() {
 #endif
   while (1) {
+    // Read command atomically
+    commandMutex.lock();
+    MotorCommand cmd = currentCommand;
+    commandMutex.unlock();
+
     // E-stop check - highest priority
     if (isEStopActive()) {
       stopAllMotors();
-      if (currentCommand != 'X') {
-        currentCommand = 'X';
+      if (cmd.cmd != 'X') {
+        commandMutex.lock();
+        currentCommand.cmd = 'X';
+        commandMutex.unlock();
         Serial.println("E-STOP ACTIVE! Press 'R' to reset.");  
       }
       rtos_delay_ms(10);
@@ -188,14 +214,14 @@ void TaskMotorControl() {
     }
 
     unsigned long now = millis();
-    char cmd = currentCommand;
-    
-    if (cmd != 'X' && (now - commandTime) >= stepDuration) {
-      currentCommand = 'X';
-      cmd = 'X';
+    if (cmd.cmd != 'X' && (now - cmd.timestamp) >= cmd.duration) {
+      commandMutex.lock();
+      currentCommand.cmd = 'X';
+      commandMutex.unlock();
+      cmd.cmd = 'X';
     }
     
-    switch (cmd) {
+    switch (cmd.cmd) {
       case 'W':
         Serial.println("Moving Forward");
         motorAForward();
@@ -280,25 +306,32 @@ void TaskTCPServer() {
 
 // === HELPER FUNCTIONS (unchanged) ===
 void updateSpeed(int speedLevel) {
-  currentSpeed = map(speedLevel, 0, 9, 50, 255);
+  int pwm = map(speedLevel, 0, 9, 50, 255);
+  
+  commandMutex.lock();
+  currentCommand.speed = pwm;
+  commandMutex.unlock();
+  
   Serial.print("Speed: ");
   Serial.print(speedLevel);
   Serial.print(" (PWM ");
-  Serial.print(currentSpeed);
+  Serial.print(pwm);
   Serial.println(")");
 }
 
 void updateDuration(int change) {
-  stepDuration += change;
-  if (stepDuration < 100) stepDuration = 100;
-  if (stepDuration > 900) stepDuration = 900;
-  stepDuration = (stepDuration / 100) * 100;
+  commandMutex.lock();
+  currentCommand.duration += change;
+  if (currentCommand.duration < 100) currentCommand.duration = 100;
+  if (currentCommand.duration > 900) currentCommand.duration = 900;
+  currentCommand.duration = (currentCommand.duration / 100) * 100;
+  int dur = currentCommand.duration;
+  commandMutex.unlock();
   
   Serial.print("Duration: ");
-  Serial.print(stepDuration);
+  Serial.print(dur);
   Serial.println("ms");
 }
-
 void printMenu() {
   Serial.println("================================");
   Serial.println("=== Real-Time Motor Control ===");
