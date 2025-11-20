@@ -179,6 +179,7 @@ void TaskMotorControl() {
     // E-stop check - highest priority
     if (isEStopActive()) {
       stopAllMotors();
+      currentCommand = 'X';
       Serial.println("E-STOP ACTIVE! Press 'R' to reset.");  
       rtos_delay_ms(10);
       continue;
