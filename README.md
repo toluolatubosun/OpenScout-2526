@@ -16,13 +16,6 @@ Simple dual-motor robot with FreeRTOS control and emergency stop.
 - Arduino Pin 7 → L298N IN3
 - Arduino Pin 8 → L298N IN4
 
-**Connect Motors**
-- Left Motor → L298N OUT1 and OUT2
-- Right Motor → L298N OUT3 and OUT4
-
-### E-Stop Button
-- Any top pin → Arduino Pin 2
-- Any bottom pin → Arduino GND
 
 ### Power
 - L298N 12V input → 12V power supply
