@@ -40,6 +40,7 @@ Simple dual-motor robot with FreeRTOS control and emergency stop.
 3. Search for and install:
    - **FreeRTOS by Richard Barry** version **11.1.0-3**
    - **ArduinoJson** version **7.4.2**
+   - **LiquidCrystal by Arduino** version **1.0.7**
 
 ---
 
