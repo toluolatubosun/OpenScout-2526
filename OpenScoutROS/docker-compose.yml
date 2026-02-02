@@ -1,0 +1,12 @@
+services:
+  ros:
+    build: .
+    network_mode: "host"
+    stdin_open: true
+    tty: true
+    environment:
+      - ROS_DOMAIN_ID=0
+      - ROS_LOCALHOST_ONLY=0
+    volumes:
+      - ./ros_bridge.py:/app/ros_bridge.py
+      - ./launch.sh:/app/launch.sh
