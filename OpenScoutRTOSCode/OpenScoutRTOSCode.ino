@@ -70,7 +70,7 @@ void rtos_create_tasks() {
     tcpThread.start(TaskTCPServer);
   #else
     xTaskCreate(TaskSerialRead, "Serial", 256, NULL, 1, &serialTaskHandle);
-    xTaskCreate(TaskMotorControl, "Motor", 128, NULL, 1, &motorTaskHandle);
+    xTaskCreate(TaskMotorControl, "Motor", 256, NULL, 1, &motorTaskHandle);
     xTaskCreate(TaskWiFiMonitor, "WiFi", 128, NULL, 1, &wifiTaskHandle);
     xTaskCreate(TaskTCPServer, "TCP", 256, NULL, 1, &tcpTaskHandle);
     vTaskStartScheduler();
@@ -231,18 +231,26 @@ void TaskMotorControl() {
       case 'W':
         motorAForward();
         motorBForward();
+        motorCForward();
+        motorDForward();
         break;
       case 'S':
         motorABackward();
         motorBBackward();
+        motorCBackward();
+        motorDBackward();
         break;
       case 'A':
         motorABackward();
         motorBForward();
+        motorCBackward();
+        motorDForward();
         break;
       case 'D':
         motorAForward();
         motorBBackward();
+        motorCForward();
+        motorDBackward();
         break;
       case 'X':
         stopAllMotors();

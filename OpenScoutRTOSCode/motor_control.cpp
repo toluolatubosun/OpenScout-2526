@@ -7,10 +7,10 @@
 #endif
 
 // === MOTOR PIN DEFINITIONS ===
-const int enA = 3, in1 = 4, in2 = 5;  // Motor A (Back - Left)
-const int enB = 9, in3 = 7, in4 = 8;  // Motor B (Back - Right)
-const int enC = 45, in5 = 43, in6 = 41;  // Motor C (Front - Left)
-const int enD = 40, in7 = 42, in8 = 44;  // Motor D (Front - Right)
+const int enA = 3, in1 = 4, in2 = 5;     // Motor A (Back - Left)
+const int enB = 9, in3 = 7, in4 = 8;     // Motor B (Back - Right)
+const int enC = 2, in5 = 22, in6 = 24;   // Motor C (Front - Left) - CHANGED
+const int enD = 6, in7 = 28, in8 = 30;   // Motor D (Front - Right) - CHANGED
 
 // Access to global command from main file
 extern MotorCommand currentCommand;
@@ -75,10 +75,66 @@ void stopMotorB() {
   analogWrite(enB, 0);
 }
 
+// === MOTOR C (FRONT - LEFT) ===
+void motorCForward() {
+  commandMutex.lock();
+  int speed = currentCommand.speed;
+  commandMutex.unlock();
+  
+  digitalWrite(in5, HIGH);
+  digitalWrite(in6, LOW);
+  analogWrite(enC, speed);
+}
+
+void motorCBackward() {
+  commandMutex.lock();
+  int speed = currentCommand.speed;
+  commandMutex.unlock();
+
+  digitalWrite(in5, LOW);
+  digitalWrite(in6, HIGH);
+  analogWrite(enC, speed);
+}
+
+void stopMotorC() {
+  digitalWrite(in5, LOW);
+  digitalWrite(in6, LOW);
+  analogWrite(enC, 0);
+}
+
+// === MOTOR D (FRONT - RIGHT) ===
+void motorDForward() {
+  commandMutex.lock();
+  int speed = currentCommand.speed;
+  commandMutex.unlock();
+  
+  digitalWrite(in8, HIGH);
+  digitalWrite(in7, LOW);
+  analogWrite(enD, speed);
+}
+
+void motorDBackward() {
+  commandMutex.lock();
+  int speed = currentCommand.speed;
+  commandMutex.unlock();
+  
+  digitalWrite(in8, LOW);
+  digitalWrite(in7, HIGH);
+  analogWrite(enD, speed);
+}
+
+void stopMotorD() {
+  digitalWrite(in8, LOW);
+  digitalWrite(in7, LOW);
+  analogWrite(enD, 0);
+}
+
 // === STOP ALL ===
 void stopAllMotors() {
   stopMotorA();
   stopMotorB();
+  stopMotorC();
+  stopMotorD();
 }
 
 // === INITIALIZATION ===
@@ -89,5 +145,11 @@ void initializeMotorPins() {
   pinMode(enB, OUTPUT);
   pinMode(in3, OUTPUT);
   pinMode(in4, OUTPUT);
+  pinMode(enC, OUTPUT);
+  pinMode(in5, OUTPUT);
+  pinMode(in6, OUTPUT);
+  pinMode(enD, OUTPUT);
+  pinMode(in7, OUTPUT);
+  pinMode(in8, OUTPUT);
   stopAllMotors();
 }

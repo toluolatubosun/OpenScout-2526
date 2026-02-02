@@ -9,8 +9,10 @@ struct MotorCommand {
 };
 
 // === MOTOR PIN DEFINITIONS ===
-extern const int enA, in1, in2;  // Motor A (Left)
-extern const int enB, in3, in4;  // Motor B (Right)
+extern const int enA, in1, in2;  // Motor A (Back - Left)
+extern const int enB, in3, in4;  // Motor B (Back - Right)
+extern const int enC, in5, in6;  // Motor C (Front - Left)
+extern const int enD, in7, in8;  // Motor D (Front - Right)
 
 // === FUNCTION DECLARATIONS ===
 void initializeMotorPins();
@@ -18,8 +20,14 @@ void motorAForward();
 void motorABackward();
 void motorBForward();
 void motorBBackward();
+void motorCForward();
+void motorCBackward();
+void motorDForward();
+void motorDBackward();
 void stopMotorA();
 void stopMotorB();
+void stopMotorC();
+void stopMotorD();
 void stopAllMotors();
 
 #endif // MOTOR_CONTROL_H
