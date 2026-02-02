@@ -136,7 +136,6 @@ class ArduinoROSBridge(Node):
                                     f'Status: cmd={status["command"]}, '
                                     f'speed={status["speed"]}, '
                                     f'duration={status["duration"]}, '
-                                    f'e_stop={status["e_stop"]}, '
                                     f'rssi={status["rssi"]} dBm',
                                     throttle_duration_sec=1.0
                                 )
