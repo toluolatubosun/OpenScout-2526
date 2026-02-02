@@ -7,8 +7,10 @@
 #endif
 
 // === MOTOR PIN DEFINITIONS ===
-const int enA = 3, in1 = 4, in2 = 5;  // Motor A (Left)
-const int enB = 9, in3 = 7, in4 = 8;  // Motor B (Right)
+const int enA = 3, in1 = 4, in2 = 5;  // Motor A (Back - Left)
+const int enB = 9, in3 = 7, in4 = 8;  // Motor B (Back - Right)
+const int enC = 45, in5 = 43, in6 = 41;  // Motor C (Front - Left)
+const int enD = 40, in7 = 42, in8 = 44;  // Motor D (Front - Right)
 
 // Access to global command from main file
 extern MotorCommand currentCommand;

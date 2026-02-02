@@ -2,13 +2,46 @@
 #include <Arduino.h>
 #include <SPI.h>
 #include <WiFi.h>
+#include <LiquidCrystal.h>
 
 // === WIFI CONFIGURATION ===
 const char* WIFI_SSID = "John_A16";      // Change this
-const char* WIFI_PASSWORD = "kingtolu";     // Change this
+const char* WIFI_PASSWORD = "kingtolu";  // Change this
 
 // === WIFI STATE ===
 volatile bool wifiConnected = false;
+
+// === LCD SETUP ===
+/*
+VSS → GND
+VDD → 5V
+V0 → 10kΩ potentiometer (contrast adjustment)
+RS → Pin 12
+RW → GND
+E → Pin 11
+D4 → Pin 10
+D5 → Pin 13
+D6 → Pin 14
+D7 → Pin 15
+A (backlight +) → 5V (through 220Ω resistor)
+K (backlight -) → GND
+*/
+// Initialize LCD: RS, E, D4, D5, D6, D7
+// Using pins: 12, 11, 10, 13, 14, 15
+const int rs = 12, en = 11, d4 = 10, d5 = 13, d6 = 14, d7 = 15;
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+
+// === UPDATE LCD DISPLAY ===
+void updateLCDDisplay() {
+  lcd.clear();
+  
+  if (WiFi.status() == WL_CONNECTED) {
+    // Display IP address
+    lcd.setCursor(0, 0);
+    lcd.print(WiFi.localIP());
+  }
+  // If not connected, LCD stays clear (shows nothing)
+}
 
 // === CONNECT TO WIFI ===
 void connectWiFi() {
@@ -52,11 +85,17 @@ void connectWiFi() {
     Serial.print("IP address: ");
     Serial.println(WiFi.localIP());
     Serial.println("================================");
+    
+    // Update LCD with IP address
+    updateLCDDisplay();
   } else {
     wifiConnected = false;
     Serial.print("WiFi connection failed. Final status: ");
     Serial.println(WiFi.status());
     Serial.println("================================");
+    
+    // Clear LCD display
+    lcd.clear();
   }
 }
 
@@ -70,6 +109,7 @@ void checkConnections() {
   // Check WiFi connection
   if (WiFi.status() != WL_CONNECTED) {
     wifiConnected = false;
+    lcd.clear();  // Clear display when disconnected
     delay(1000);
     connectWiFi();
   }
@@ -77,5 +117,10 @@ void checkConnections() {
 
 // === INITIALIZATION ===
 void initializeWiFi() {
+  // Initialize LCD (16 columns x 2 rows)
+  lcd.begin(16, 2);
+  lcd.clear();
+  
+  // Connect to WiFi
   connectWiFi();
 }
