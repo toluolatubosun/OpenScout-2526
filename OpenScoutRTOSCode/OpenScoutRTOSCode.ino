@@ -188,6 +188,8 @@ void TaskMotorControl(void* pvParameters) {
 #else
 void TaskMotorControl() {
 #endif
+  char lastCmd = '\0';  // Track previous command to avoid repeated printing
+  
   while (1) {
     // Read command atomically
     commandMutex.lock();
@@ -202,29 +204,47 @@ void TaskMotorControl() {
       cmd.cmd = 'X';
     }
     
+    // Only print when command changes
+    if (cmd.cmd != lastCmd) {
+      switch (cmd.cmd) {
+        case 'W':
+          Serial.println("Moving Forward");
+          break;
+        case 'S':
+          Serial.println("Moving Backward");
+          break;
+        case 'A':
+          Serial.println("Turning Left");
+          break;
+        case 'D':
+          Serial.println("Turning Right");
+          break;
+        case 'X':
+          Serial.println("Stopping Motors");
+          break;
+      }
+      lastCmd = cmd.cmd;
+    }
+    
+    // Always execute the motor commands
     switch (cmd.cmd) {
       case 'W':
-        Serial.println("Moving Forward");
         motorAForward();
         motorBForward();
         break;
       case 'S':
-        Serial.println("Moving Backward");
         motorABackward();
         motorBBackward();
         break;
       case 'A':
-        Serial.println("Turning Left");
         motorABackward();
         motorBForward();
         break;
       case 'D':
-        Serial.println("Turning Right");
         motorAForward();
         motorBBackward();
         break;
       case 'X':
-        Serial.println("Stopping Motors");
         stopAllMotors();
         break;
     }
