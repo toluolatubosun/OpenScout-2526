@@ -10,11 +10,11 @@
 // === HC-12 CONFIGURATION ===
 const int HC12_BAUD_RATE = 9600;
 
-// Arduino GIGA has built-in Serial1 on pins:
-// TX1 = Pin 18 (D18)
-// RX1 = Pin 19 (D19)
-// Connect HC-12 TX to GIGA RX1 (pin 19)
-// Connect HC-12 RX to GIGA TX1 (pin 18)
+// Arduino GIGA R1 WiFi Serial3 on pins:
+// TX3 = Pin 18 (PD8)
+// RX3 = Pin 19 (PD9)
+// Connect HC-12 TX to GIGA RX3 (pin 19)
+// Connect HC-12 RX to GIGA TX3 (pin 18)
 
 // Access to global state from main
 extern MotorCommand currentCommand;
@@ -27,27 +27,30 @@ extern MotorCommand currentCommand;
 
 // === INITIALIZE HC-12 ===
 void initializeHC12() {
-  Serial1.begin(HC12_BAUD_RATE);
+  Serial3.begin(HC12_BAUD_RATE);
   
   Serial.println("================================");
   Serial.println("HC-12 Receiver Initialized");
-  Serial.println("Using Serial1 (TX1=Pin18, RX1=Pin19)");
+  Serial.println("Using Serial3 (TX3=Pin18, RX3=Pin19)");
   Serial.print("Baud Rate: ");
   Serial.println(HC12_BAUD_RATE);
   Serial.println("Wiring:");
-  Serial.println("  HC-12 TX -> GIGA RX1 (Pin 19)");
-  Serial.println("  HC-12 RX -> GIGA TX1 (Pin 18)");
+  Serial.println("  HC-12 TX -> GIGA RX3 (Pin 19)");
+  Serial.println("  HC-12 RX -> GIGA TX3 (Pin 18)");
+  Serial.println("  HC-12 VCC -> 5V");
+  Serial.println("  HC-12 GND -> GND");
+  Serial.println("  HC-12 SET -> Leave disconnected");
   Serial.println("================================");
 }
 
 // === HANDLE HC-12 COMMANDS ===
 void handleHC12Commands() {
-  if (Serial1.available() > 0) {
+  if (Serial3.available() > 0) {
     char latestChar = 0;
     
     // Read all buffered characters and keep only the last valid one
-    while (Serial1.available() > 0) {
-      char c = Serial1.read();
+    while (Serial3.available() > 0) {
+      char c = Serial3.read();
       // Skip whitespace but keep the last valid character
       if (c != ' ' && c != '\t' && c != '\n' && c != '\r') {
         latestChar = c;
