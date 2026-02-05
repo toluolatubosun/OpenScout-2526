@@ -11,6 +11,7 @@
 #include "tcp_server.h"
 #include "wifi_manager.h"
 #include "motor_control.h"
+#include "hc12_receiver.h"
 
 // === SHARED STATE (Global) ===
 MotorCommand currentCommand = {'X', 150, 300, 0};
@@ -33,11 +34,13 @@ void printMenu();
   void TaskMotorControl(void* pvParameters);
   void TaskWiFiMonitor(void* pvParameters);
   void TaskTCPServer(void* pvParameters);
+  void TaskHC12Read(void* pvParameters);
 #else
   void TaskSerialRead();
   void TaskMotorControl();
   void TaskWiFiMonitor();
   void TaskTCPServer();
+  void TaskHC12Read();
 #endif
 
 // === RTOS THREAD/TASK HANDLES ===
@@ -46,11 +49,13 @@ void printMenu();
   Thread motorThread;
   Thread wifiThread;
   Thread tcpThread;
+  Thread hc12Thread;
 #else
   TaskHandle_t serialTaskHandle;
   TaskHandle_t motorTaskHandle;
   TaskHandle_t wifiTaskHandle;
   TaskHandle_t tcpTaskHandle;
+  TaskHandle_t hc12TaskHandle;
 #endif
 
 // === RTOS ABSTRACTION LAYER ===
@@ -68,11 +73,13 @@ void rtos_create_tasks() {
     motorThread.start(TaskMotorControl);
     wifiThread.start(TaskWiFiMonitor);
     tcpThread.start(TaskTCPServer);
+    hc12Thread.start(TaskHC12Read);
   #else
     xTaskCreate(TaskSerialRead, "Serial", 256, NULL, 1, &serialTaskHandle);
     xTaskCreate(TaskMotorControl, "Motor", 256, NULL, 1, &motorTaskHandle);
     xTaskCreate(TaskWiFiMonitor, "WiFi", 128, NULL, 1, &wifiTaskHandle);
     xTaskCreate(TaskTCPServer, "TCP", 256, NULL, 1, &tcpTaskHandle);
+    xTaskCreate(TaskHC12Read, "HC12", 256, NULL, 1, &hc12TaskHandle);
     vTaskStartScheduler();
   #endif
 }
@@ -83,6 +90,7 @@ void setup() {
 
   initializeMotorPins();
   initializeWiFi();
+  initializeHC12();
 
   // Initialize mutex (only needed for FreeRTOS)
   #ifndef USE_MBED_OS
@@ -98,7 +106,7 @@ void loop() {
   // Empty
 }
 
-// === SERIAL READING TASK (unchanged) ===
+// === SERIAL READING TASK ===
 #ifdef USE_FREERTOS
 void TaskSerialRead(void* pvParameters) {
 #else
@@ -109,16 +117,25 @@ void TaskSerialRead() {
     String commandSource = "Serial";
     bool commandReceived = false;
     
-    // Check serial for commands
-    if (!commandReceived && Serial.available() > 0) {
-      input = Serial.read();
-      commandReceived = true;
-      commandSource = "Serial";
-    }
-
-    // Skip processing whitespace/empty input
-    if (input == ' ' || input == '\t' || input == '\n' || input == '\r') {
-      continue; 
+    // Check serial for commands - read ALL available and keep only the LATEST
+    if (Serial.available() > 0) {
+      char latestChar = 0;
+      
+      // Read all buffered characters and keep only the last non-whitespace one
+      while (Serial.available() > 0) {
+        char c = Serial.read();
+        // Skip whitespace but keep the last valid character
+        if (c != ' ' && c != '\t' && c != '\n' && c != '\r') {
+          latestChar = c;
+        }
+      }
+      
+      // Only process if we got a valid character
+      if (latestChar != 0) {
+        input = latestChar;
+        commandReceived = true;
+        commandSource = "Serial";
+      }
     }
 
     if (commandReceived) {
@@ -309,6 +326,18 @@ void TaskTCPServer() {
       lastStatusTime = now;
     }
     
+    rtos_delay_ms(10);
+  }
+}
+
+// === NEW: HC-12 READING TASK ===
+#ifdef USE_FREERTOS
+void TaskHC12Read(void* pvParameters) {
+#else
+void TaskHC12Read() {
+#endif
+  while (1) {
+    handleHC12Commands();
     rtos_delay_ms(10);
   }
 }

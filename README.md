@@ -41,6 +41,7 @@ Simple dual-motor robot with FreeRTOS control and emergency stop.
    - **FreeRTOS by Richard Barry** version **11.1.0-3**
    - **ArduinoJson** version **7.4.2**
    - **LiquidCrystal by Arduino** version **1.0.7**
+   - **Keypad** by Mark Stanley, Alexander Brevig** version **3.0.0**
 
 ---
 

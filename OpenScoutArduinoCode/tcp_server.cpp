@@ -87,61 +87,73 @@ void handleTCPClient() {
     return;
   }
   
-  // Read incoming data
+  // Read ALL available data to get only the latest command
   if (tcpClient.available() > 0) {
-    String jsonStr = tcpClient.readStringUntil('\n');
-    jsonStr.trim();
+    String latestCommand = "";
     
-    // Parse JSON with ArduinoJson
-    StaticJsonDocument<200> doc;
-    DeserializationError error = deserializeJson(doc, jsonStr);
-    
-    if (error) {
-      Serial.print("JSON parse error: ");
-      Serial.println(error.c_str());
-      return;
+    // Read everything available and keep only the last complete line
+    while (tcpClient.available() > 0) {
+      String line = tcpClient.readStringUntil('\n');
+      if (line.length() > 0) {
+        latestCommand = line;  // Keep overwriting with the latest
+      }
     }
+    
+    // Process only the latest command if we got one
+    if (latestCommand.length() > 0) {
+      latestCommand.trim();
+      
+      // Parse JSON with ArduinoJson
+      StaticJsonDocument<200> doc;
+      DeserializationError error = deserializeJson(doc, latestCommand);
+      
+      if (error) {
+        Serial.print("JSON parse error: ");
+        Serial.println(error.c_str());
+        return;
+      }
 
-    MotorCommand newCmd = currentCommand;
-    
-    if (doc.containsKey("cmd")) {
-      const char* cmdStr = doc["cmd"];
-      if (cmdStr && strlen(cmdStr) > 0) {
-        newCmd.cmd = cmdStr[0];
-        newCmd.timestamp = millis();
-        Serial.print("TCP Command: ");
-        Serial.println(cmdStr);
+      MotorCommand newCmd = currentCommand;
+      
+      if (doc.containsKey("cmd")) {
+        const char* cmdStr = doc["cmd"];
+        if (cmdStr && strlen(cmdStr) > 0) {
+          newCmd.cmd = cmdStr[0];
+          newCmd.timestamp = millis();
+          Serial.print("TCP Command: ");
+          Serial.println(cmdStr);
+        }
       }
-    }
-    
-   if (doc.containsKey("speed")) {
-      int speed = doc["speed"];
-      if (speed >= 0 && speed <= 255) {
-        newCmd.speed = speed;
-        Serial.print("TCP Speed: ");
-        Serial.println(speed);
-      } else {
-        Serial.print("Invalid speed received: ");
-        Serial.println(speed);
+      
+      if (doc.containsKey("speed")) {
+        int speed = doc["speed"];
+        if (speed >= 0 && speed <= 255) {
+          newCmd.speed = speed;
+          Serial.print("TCP Speed: ");
+          Serial.println(speed);
+        } else {
+          Serial.print("Invalid speed received: ");
+          Serial.println(speed);
+        }
       }
-    }
-    
-    if (doc.containsKey("duration")) {
-      int dur = doc["duration"];
-      if (dur >= 100 && dur <= 900) {
-        newCmd.duration = dur;
-        Serial.print("TCP Duration: ");
-        Serial.println(dur);
-      } else {
-        Serial.print("Invalid duration received: ");
-        Serial.println(dur);
+      
+      if (doc.containsKey("duration")) {
+        int dur = doc["duration"];
+        if (dur >= 100 && dur <= 900) {
+          newCmd.duration = dur;
+          Serial.print("TCP Duration: ");
+          Serial.println(dur);
+        } else {
+          Serial.print("Invalid duration received: ");
+          Serial.println(dur);
+        }
       }
-    }
 
-    // Update the global command atomically
-    commandMutex.lock();
-    currentCommand = newCmd;
-    commandMutex.unlock();
+      // Update the global command atomically
+      commandMutex.lock();
+      currentCommand = newCmd;
+      commandMutex.unlock();
+    }
   }
 }
 
