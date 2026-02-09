@@ -14,6 +14,10 @@ extern const int enB, in3, in4;  // Motor B (Back - Right)
 extern const int enC, in5, in6;  // Motor C (Front - Left)
 extern const int enD, in7, in8;  // Motor D (Front - Right)
 
+// === ULTRASONIC SENSOR PIN DEFINITIONS ===
+extern const int trigFront, echoFront;  // Front sensor
+extern const int trigBack, echoBack;    // Back sensor
+
 // === FUNCTION DECLARATIONS ===
 void initializeMotorPins();
 void motorAForward();
@@ -29,5 +33,11 @@ void stopMotorB();
 void stopMotorC();
 void stopMotorD();
 void stopAllMotors();
+
+// === ULTRASONIC FUNCTIONS ===
+long getDistanceFront();
+long getDistanceBack();
+bool canMoveForward();
+bool canMoveBackward();
 
 #endif // MOTOR_CONTROL_H

@@ -12,6 +12,10 @@ const int enB = 9, in3 = 7, in4 = 8;     // Motor B (Back - Right)
 const int enC = 2, in5 = 22, in6 = 24;   // Motor C (Front - Left) - CHANGED
 const int enD = 6, in7 = 28, in8 = 30;   // Motor D (Front - Right) - CHANGED
 
+// === ULTRASONIC SENSOR PIN DEFINITIONS ===
+const int trigFront = 50, echoFront = 52;  // Front sensor
+const int trigBack = 36, echoBack = 38;    // Back sensor
+
 // Access to global command from main file
 extern MotorCommand currentCommand;
 
@@ -137,6 +141,35 @@ void stopAllMotors() {
   stopMotorD();
 }
 
+// === ULTRASONIC FUNCTIONS ===
+long getDistanceFront() {
+  digitalWrite(trigFront, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigFront, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigFront, LOW);
+  long duration = pulseIn(echoFront, HIGH);
+  return duration * 0.034 / 2;  // Convert to cm
+}
+
+long getDistanceBack() {
+  digitalWrite(trigBack, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigBack, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigBack, LOW);
+  long duration = pulseIn(echoBack, HIGH);
+  return duration * 0.034 / 2;  // Convert to cm
+}
+
+bool canMoveForward() {
+  return getDistanceFront() > 30;  // Threshold: 30cm
+}
+
+bool canMoveBackward() {
+  return getDistanceBack() > 30;   // Threshold: 30cm
+}
+
 // === INITIALIZATION ===
 void initializeMotorPins() {
   pinMode(enA, OUTPUT);
@@ -151,5 +184,12 @@ void initializeMotorPins() {
   pinMode(enD, OUTPUT);
   pinMode(in7, OUTPUT);
   pinMode(in8, OUTPUT);
+  
+  // Initialize ultrasonic pins
+  pinMode(trigFront, OUTPUT);
+  pinMode(echoFront, INPUT);
+  pinMode(trigBack, OUTPUT);
+  pinMode(echoBack, INPUT);
+  
   stopAllMotors();
 }

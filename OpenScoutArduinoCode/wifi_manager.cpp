@@ -120,6 +120,8 @@ void initializeWiFi() {
   // Initialize LCD (16 columns x 2 rows)
   lcd.begin(16, 2);
   lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Hello!");
   
   // Removed: connectWiFi(); - Let the WiFi monitoring task handle connection asynchronously to avoid blocking setup()
 }

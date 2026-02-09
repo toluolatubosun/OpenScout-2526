@@ -220,6 +220,13 @@ void TaskMotorControl() {
       cmd.cmd = 'X';
     }
     
+    // Check for obstacles before moving forward or backward
+    if (cmd.cmd == 'W' && !canMoveForward()) {
+      cmd.cmd = 'X';  // Stop if obstacle in front
+    } else if (cmd.cmd == 'S' && !canMoveBackward()) {
+      cmd.cmd = 'X';  // Stop if obstacle in back
+    }
+    
     // Only print when command changes
     if (cmd.cmd != lastCmd) {
       switch (cmd.cmd) {
