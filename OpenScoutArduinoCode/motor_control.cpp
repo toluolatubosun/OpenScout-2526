@@ -16,6 +16,9 @@ const int enD = 6, in7 = 28, in8 = 30;   // Motor D (Front - Right) - CHANGED
 const int trigFront = 50, echoFront = 52;  // Front sensor
 const int trigBack = 36, echoBack = 38;    // Back sensor
 
+// === BUZZER PIN DEFINITION ===
+const int buzzerPin = 34;
+
 // Access to global command from main file
 extern MotorCommand currentCommand;
 
@@ -170,6 +173,13 @@ bool canMoveBackward() {
   return getDistanceBack() > 30;   // Threshold: 30cm
 }
 
+// === BUZZER FUNCTION ===
+void beepBuzzer() {
+  digitalWrite(buzzerPin, HIGH);
+  delay(200);  // Beep for 200ms
+  digitalWrite(buzzerPin, LOW);
+}
+
 // === INITIALIZATION ===
 void initializeMotorPins() {
   pinMode(enA, OUTPUT);
@@ -190,6 +200,9 @@ void initializeMotorPins() {
   pinMode(echoFront, INPUT);
   pinMode(trigBack, OUTPUT);
   pinMode(echoBack, INPUT);
+  
+  // Initialize buzzer pin
+  pinMode(buzzerPin, OUTPUT);
   
   stopAllMotors();
 }

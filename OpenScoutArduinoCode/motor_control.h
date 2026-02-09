@@ -18,6 +18,9 @@ extern const int enD, in7, in8;  // Motor D (Front - Right)
 extern const int trigFront, echoFront;  // Front sensor
 extern const int trigBack, echoBack;    // Back sensor
 
+// === BUZZER PIN DEFINITION ===
+extern const int buzzerPin;
+
 // === FUNCTION DECLARATIONS ===
 void initializeMotorPins();
 void motorAForward();
@@ -39,5 +42,8 @@ long getDistanceFront();
 long getDistanceBack();
 bool canMoveForward();
 bool canMoveBackward();
+
+// === BUZZER FUNCTION ===
+void beepBuzzer();
 
 #endif // MOTOR_CONTROL_H

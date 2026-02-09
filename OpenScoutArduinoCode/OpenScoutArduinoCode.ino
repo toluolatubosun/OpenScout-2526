@@ -222,8 +222,10 @@ void TaskMotorControl() {
     
     // Check for obstacles before moving forward or backward
     if (cmd.cmd == 'W' && !canMoveForward()) {
+      beepBuzzer();  // Beep when obstacle detected
       cmd.cmd = 'X';  // Stop if obstacle in front
     } else if (cmd.cmd == 'S' && !canMoveBackward()) {
+      beepBuzzer();  // Beep when obstacle detected
       cmd.cmd = 'X';  // Stop if obstacle in back
     }
     
