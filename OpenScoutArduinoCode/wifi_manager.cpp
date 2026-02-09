@@ -121,6 +121,5 @@ void initializeWiFi() {
   lcd.begin(16, 2);
   lcd.clear();
   
-  // Connect to WiFi
-  connectWiFi();
+  // Removed: connectWiFi(); - Let the WiFi monitoring task handle connection asynchronously to avoid blocking setup()
 }

@@ -88,7 +88,6 @@ void setup() {
   Serial.begin(9600);
 
   initializeMotorPins();
-  initializeWiFi();
   initializeHC12();
 
   // Initialize mutex (only needed for FreeRTOS)
@@ -97,6 +96,7 @@ void setup() {
   #endif
 
   printMenu();
+  initializeWiFi();
 
   rtos_create_tasks();
 }
