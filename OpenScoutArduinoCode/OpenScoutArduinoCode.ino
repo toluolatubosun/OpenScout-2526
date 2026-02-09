@@ -86,7 +86,6 @@ void rtos_create_tasks() {
 
 void setup() { 
   Serial.begin(9600);
-  while (!Serial) { ; }
 
   initializeMotorPins();
   initializeWiFi();
