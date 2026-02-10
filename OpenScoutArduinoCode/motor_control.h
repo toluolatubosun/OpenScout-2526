@@ -21,6 +21,9 @@ extern const int trigBack, echoBack;    // Back sensor
 // === BUZZER PIN DEFINITION ===
 extern const int buzzerPin;
 
+// === LED PIN DEFINITIONS ===
+extern const int led1, led2, led3, led4;
+
 // === FUNCTION DECLARATIONS ===
 void initializeMotorPins();
 void motorAForward();
@@ -45,5 +48,8 @@ bool canMoveBackward();
 
 // === BUZZER FUNCTION ===
 void beepBuzzer();
+
+// === LED FUNCTIONS ===
+void turnOffAllLEDs();
 
 #endif // MOTOR_CONTROL_H

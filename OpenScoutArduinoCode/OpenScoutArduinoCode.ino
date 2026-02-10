@@ -254,30 +254,39 @@ void TaskMotorControl() {
     // Always execute the motor commands
     switch (cmd.cmd) {
       case 'W':
+        turnOffAllLEDs();
+        digitalWrite(led1, HIGH);
         motorAForward();
         motorBForward();
         motorCForward();
         motorDForward();
         break;
       case 'S':
+        turnOffAllLEDs();
+        digitalWrite(led2, HIGH);
         motorABackward();
         motorBBackward();
         motorCBackward();
         motorDBackward();
         break;
       case 'A':
+        turnOffAllLEDs();
+        digitalWrite(led3, HIGH);
         motorABackward();
         motorBForward();
         motorCBackward();
         motorDForward();
         break;
       case 'D':
+        turnOffAllLEDs();
+        digitalWrite(led4, HIGH);
         motorAForward();
         motorBBackward();
         motorCForward();
         motorDBackward();
         break;
       case 'X':
+        turnOffAllLEDs();
         stopAllMotors();
         break;
     }
