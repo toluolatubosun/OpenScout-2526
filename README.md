@@ -25,6 +25,7 @@ non-specialists.
 4. [Electric Circuit & Firmware](#4-electric-circuit--firmware)
 5. [Testing](#5-testing)
 6. [Contributors](#6-contributors) 
+7. [Demonstration Video](#7-demonstration-video) 
 
 ### 1. General Info 
 
@@ -480,7 +481,15 @@ This project was developed by:
 
 ---
 
-### 7. References
+### 7. Demonstration Video
+
+Watch the demonstration video to see OpenScout in action:
+
+<video src="Demonstration Video.mp4" controls width="600"></video>
+
+---
+
+### 8. References
 
 OpenScout previous versions: 
 [Link1](https://github.com/ahmed-elbary/OpenScout), [Link2](https://github.com/ilovemicroplastics/OpenScoutV1-1?tab=readme-ov-file), [Link3](https://github.com/garry-clawson/OpenScout)
