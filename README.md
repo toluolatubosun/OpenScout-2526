@@ -10,9 +10,11 @@ FreeRTOS task scheduling enables concurrent execution of motor control, network 
 reproducible, open-source educational platform bridging embedded systems and modern robotics middleware, licensed under CERN-OHL-S2.0, with complete build documentation enabling 6–20 hour assembly by
 non-specialists.
 
+
+## Demo video can be found in the base of the repository: [Demonstration Video](Demonstration%20Video.mp4)
 | | |
 |--|--|
-| <video src="Demonstration Video.mp4" controls width="600"></video> |
+| ![OpenScout Robot View 1](Documents/open_scout_1.jpeg) | ![OpenScout Robot View 2](Documents/open_scout.jpeg) |
 ---
 
 ![OpenScout Mechanical Assembly Overview](MechanicalDocumentation/images/image-1.png)
