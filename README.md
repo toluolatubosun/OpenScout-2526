@@ -12,7 +12,7 @@ non-specialists.
 
 | | |
 |--|--|
-| ![OpenScout Robot View 1](Documents/open_scout_1.jpeg) | ![OpenScout Robot View 2](Documents/open_scout.jpeg) |
+| <video src="Demonstration Video.mp4" controls width="600"></video> |
 ---
 
 ![OpenScout Mechanical Assembly Overview](MechanicalDocumentation/images/image-1.png)
