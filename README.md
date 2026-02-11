@@ -17,8 +17,6 @@ non-specialists.
 | ![OpenScout Robot View 1](Documents/open_scout_1.jpeg) | ![OpenScout Robot View 2](Documents/open_scout.jpeg) |
 ---
 
-![OpenScout Mechanical Assembly Overview](MechanicalDocumentation/images/image-1.png)
-
 ## Table of Contents
 
 1. [General Info](#1-general-info)
