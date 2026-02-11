@@ -15,7 +15,7 @@ non-specialists.
 | ![OpenScout Robot View 1](Documents/open_scout_1.jpeg) | ![OpenScout Robot View 2](Documents/open_scout.jpeg) |
 ---
 
-![OpenScout Mechanical Assembly Overview](Mechanical Documentation/images/image-1.png)
+![OpenScout Mechanical Assembly Overview](MechanicalDocumentation/images/image-1.png)
 
 ## Table of Contents
 
@@ -135,11 +135,11 @@ I. Open Scout main assembly
 
 The document produced previously for the open scout Lazy susan bearing version instruction manual should be useful for construction of the cuboid, the back wheels can be added similar to the front wheels (refer to the source files).
 
-![Mechanical Assembly Instructions](Mechanical Documentation/images/instructions.png)
+![Mechanical Assembly Instructions](MechanicalDocumentation/images/instructions.png)
 
 >>Note: *The size of the openscout is reduced so fewer steps needed to be followed from the main instruction version* 
 
-[Mechanical assembly based on previous version (reduced version)](Mechanical Documentation/build/InstructionManual.pdf)
+[Mechanical assembly based on previous version (reduced version)](MechanicalDocumentation/build/InstructionManual.pdf)
 
 Source: [Link to main manual](https://github.com/garry-clawson/OpenScout/tree/main/Hardware/robot_with_lazy_susan_bearing)
 
@@ -149,12 +149,12 @@ The wireless transmitter needs to be assembled using the 3D printed parts that c
 
 | | |
 |--|--|
-| ![Wireless Transmitter Assembly 1](Mechanical Documentation/images/image-1.png) | ![Wireless Transmitter Assembly 2](Mechanical Documentation/images/image-2.png) |
+| ![Wireless Transmitter Assembly 1](MechanicalDocumentation/images/image-1.png) | ![Wireless Transmitter Assembly 2](MechanicalDocumentation/images/image-2.png) |
 ---
 
 
 
-[wireless enclosure CAD files](Mechanical Documentation/remote/)
+[wireless enclosure CAD files](MechanicalDocumentation/remote/)
 
 ---
 ---
@@ -165,7 +165,7 @@ The main components used in the assembly are the motors driver running the motor
 
 
 (Note: Setup the libraries on the Arduino IDE before uploading the firmware) 
-[Arduino Libraries](Electrical Documentation/library_setup.md)
+[Arduino Libraries](ElectricalDocumentation/library_setup.md)
 
 
 I. Motor Driver PinOuts (LN298N)
@@ -174,7 +174,7 @@ I. Motor Driver PinOuts (LN298N)
 
 Source: [Motor Driver Pinout Link](https://components101.com/modules/l293n-motor-driver-module)
 
-![Motor Driver Pinout Image](Electrical Documentation/Images/motor_pinouts.png)
+![Motor Driver Pinout Image](ElectricalDocumentation/Images/motor_pinouts.png)
 
 Source: [Motor PinOut Connections (Power & Encoder)](http://www.cqrobot.wiki/index.php/DC_Gearmotor_SKU:_CQR37D)
 
@@ -183,7 +183,7 @@ II. OpenScout — Wiring connection guide
 
 The schematic for the openscout can be used as an reference for building/connecting the components:
 
-![OpenScout Wiring Schematic](Electrical Documentation/Images/schematics.png)
+![OpenScout Wiring Schematic](ElectricalDocumentation/Images/schematics.png)
 
 ---
 
@@ -291,7 +291,7 @@ Connect:
 
 ### Step 4: (Optional) Start ROS Bridge or setup the wireless 
 
-[Wireless transmitter reciever code (Optional)](Electrical Documentation/circuit_assembly_wireless.md)
+[Wireless transmitter reciever code (Optional)](ElectricalDocumentation/circuit_assembly_wireless.md)
 
 1. Use Docker Compose to start the ROS bridge:  
    ```bash
