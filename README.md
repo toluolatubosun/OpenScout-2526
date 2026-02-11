@@ -23,7 +23,8 @@ non-specialists.
 2. [Build Materials](#2-build-materials)
 3. [Mechanical Assembly](#3-mechanical-assembly)
 4. [Electric Circuit & Firmware](#4-electric-circuit--firmware)
-5. [Testing](#5-testing) 
+5. [Testing](#5-testing)
+6. [Contributors](#6-contributors) 
 
 ### 1. General Info 
 
@@ -462,7 +463,24 @@ Final validation is performed with the robot operating on the ground:
 
 ---
 
-### 6. References
+### 6. Contributors
+
+This project was developed by:
+
+- Ebohon Edosa
+- Olatubosun John
+- Omar Serag
+- Saarunathan Thuvipraksh
+- Md Umar Ibrahim
+- Muhammad Haroon Javed
+- Hasnain Munir
+- Abdul Muhaimin
+- Olatunji Jeremiah Sodiq
+- Obinna Ekoh
+
+---
+
+### 7. References
 
 OpenScout previous versions: 
 [Link1](https://github.com/ahmed-elbary/OpenScout), [Link2](https://github.com/ilovemicroplastics/OpenScoutV1-1?tab=readme-ov-file), [Link3](https://github.com/garry-clawson/OpenScout)
